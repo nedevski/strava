@@ -448,14 +448,37 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function getViewportMetrics() {
+  const viewport = window.visualViewport;
+  if (!viewport) {
+    return {
+      offsetLeft: 0,
+      offsetTop: 0,
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
+  }
+  return {
+    offsetLeft: Number.isFinite(viewport.offsetLeft) ? viewport.offsetLeft : 0,
+    offsetTop: Number.isFinite(viewport.offsetTop) ? viewport.offsetTop : 0,
+    width: Number.isFinite(viewport.width) ? viewport.width : window.innerWidth,
+    height: Number.isFinite(viewport.height) ? viewport.height : window.innerHeight,
+  };
+}
+
 function positionTooltip(x, y) {
   const padding = 12;
   const rect = tooltip.getBoundingClientRect();
-  const maxX = window.innerWidth - rect.width - padding;
-  const maxY = window.innerHeight - rect.height - padding;
-  const left = clamp(x + 12, padding, maxX);
-  const preferredTop = isTouch ? (y - rect.height - 12) : (y + 12);
-  const top = clamp(preferredTop, padding, maxY);
+  const viewport = getViewportMetrics();
+  const anchorX = x + viewport.offsetLeft;
+  const anchorY = y + viewport.offsetTop;
+  const minX = viewport.offsetLeft + padding;
+  const minY = viewport.offsetTop + padding;
+  const maxX = Math.max(minX, viewport.offsetLeft + viewport.width - rect.width - padding);
+  const maxY = Math.max(minY, viewport.offsetTop + viewport.height - rect.height - padding);
+  const left = clamp(anchorX + 12, minX, maxX);
+  const preferredTop = isTouch ? (anchorY - rect.height - 12) : (anchorY + 12);
+  const top = clamp(preferredTop, minY, maxY);
   tooltip.style.left = `${left}px`;
   tooltip.style.top = `${top}px`;
   tooltip.style.bottom = "auto";
@@ -486,7 +509,8 @@ function getTooltipEventPoint(event, fallbackElement) {
   }
   const rect = fallbackElement?.getBoundingClientRect?.();
   if (!rect) {
-    return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    const viewport = getViewportMetrics();
+    return { x: viewport.width / 2, y: viewport.height / 2 };
   }
   return {
     x: rect.left + (rect.width / 2),
