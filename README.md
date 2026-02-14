@@ -41,7 +41,7 @@ Automatically generates a free, interactive dashboard updated daily on GitHub Pa
    The setup may take several minutes to complete when run for the first time. If any automation step fails, the script prints steps to remedy the failed step.  
    Once the script succeeds, it will provide the URL for your dashboard.
 
-## Updating Your Repository
+### Updating Your Repository
 
 - To pull in new updates and features from the original repo, use GitHub's **Sync fork** button on your fork's `main` branch.
 - Activity data is stored on a dedicated `dashboard-data` branch and deployed from there
