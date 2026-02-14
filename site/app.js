@@ -533,6 +533,29 @@ function positionTooltip(x, y) {
   tooltip.style.bottom = "auto";
 }
 
+function updateTouchTooltipWrapMode() {
+  if (!isTouch) return;
+  const padding = 12;
+  const viewport = getViewportMetrics();
+  const availableWidth = Math.max(0, viewport.width - (padding * 2));
+  if (availableWidth <= 0) {
+    tooltip.classList.remove("nowrap");
+    return;
+  }
+
+  tooltip.classList.remove("nowrap");
+  tooltip.style.left = `${viewport.offsetLeft + padding}px`;
+  tooltip.style.top = `${viewport.offsetTop + padding}px`;
+  tooltip.style.bottom = "auto";
+  tooltip.style.right = "auto";
+
+  tooltip.classList.add("nowrap");
+  const nowrapWidth = tooltip.getBoundingClientRect().width;
+  if (nowrapWidth > availableWidth) {
+    tooltip.classList.remove("nowrap");
+  }
+}
+
 function showTooltip(text, x, y) {
   tooltip.textContent = text;
   const tooltipScale = getTooltipScale();
@@ -546,6 +569,9 @@ function showTooltip(text, x, y) {
     tooltip.style.transformOrigin = "top left";
   }
   tooltip.classList.add("visible");
+  if (isTouch) {
+    updateTouchTooltipWrapMode();
+  }
   requestAnimationFrame(() => {
     positionTooltip(x, y);
     if (isTouch) {
@@ -556,6 +582,7 @@ function showTooltip(text, x, y) {
 
 function hideTooltip() {
   tooltip.classList.remove("visible");
+  tooltip.classList.remove("nowrap");
 }
 
 function getTooltipEventPoint(event, fallbackElement) {
