@@ -18,6 +18,11 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const TOUCH_TAP_MAX_MOVEMENT_PX = 10;
 const TOUCH_TAP_MAX_DURATION_MS = 450;
 const TOUCH_TAP_SCROLL_THRESHOLD_PX = 2;
+const DEFAULT_UNITS = Object.freeze({ distance: "mi", elevation: "ft" });
+const UNIT_SYSTEM_TO_UNITS = Object.freeze({
+  imperial: Object.freeze({ distance: "mi", elevation: "ft" }),
+  metric: Object.freeze({ distance: "km", elevation: "m" }),
+});
 
 const typeButtons = document.getElementById("typeButtons");
 const yearButtons = document.getElementById("yearButtons");
@@ -30,6 +35,8 @@ const yearMenuLabel = document.getElementById("yearMenuLabel");
 const typeClearButton = document.getElementById("typeClearButton");
 const yearClearButton = document.getElementById("yearClearButton");
 const resetAllButton = document.getElementById("resetAllButton");
+const imperialUnitsButton = document.getElementById("imperialUnitsButton");
+const metricUnitsButton = document.getElementById("metricUnitsButton");
 const typeMenuOptions = document.getElementById("typeMenuOptions");
 const yearMenuOptions = document.getElementById("yearMenuOptions");
 const heatmaps = document.getElementById("heatmaps");
@@ -45,6 +52,23 @@ const BREAKPOINTS = Object.freeze({
 let pendingAlignmentFrame = null;
 let persistentSideStatCardWidth = 0;
 let persistentSideStatCardMinHeight = 0;
+
+function normalizeUnits(units) {
+  const distance = units?.distance === "km" ? "km" : "mi";
+  const elevation = units?.elevation === "m" ? "m" : "ft";
+  return { distance, elevation };
+}
+
+function getUnitSystemFromUnits(units) {
+  const normalized = normalizeUnits(units);
+  return normalized.distance === "km" && normalized.elevation === "m"
+    ? "metric"
+    : "imperial";
+}
+
+function getUnitsForSystem(system) {
+  return normalizeUnits(UNIT_SYSTEM_TO_UNITS[system] || DEFAULT_UNITS);
+}
 
 function isNarrowLayoutViewport() {
   return window.matchMedia(`(max-width: ${BREAKPOINTS.NARROW_LAYOUT_MAX}px)`).matches;
@@ -1064,6 +1088,7 @@ function buildSummary(
   payload,
   types,
   years,
+  units,
   showTypeBreakdown,
   showActiveDays,
   typeCardTypes,
@@ -1076,6 +1101,7 @@ function buildSummary(
   onYearMetricCardSelect,
   onYearMetricCardHoverReset,
 ) {
+  const summaryUnits = normalizeUnits(units || DEFAULT_UNITS);
   summary.innerHTML = "";
   summary.classList.remove(
     "summary-center-two-types",
@@ -1146,7 +1172,7 @@ function buildSummary(
     {
       title: "Total Distance",
       value: totals.distance > 0
-        ? formatDistance(totals.distance, payload.units || { distance: "mi" })
+        ? formatDistance(totals.distance, summaryUnits)
         : STAT_PLACEHOLDER,
       metricKey: "distance",
       filterable: totals.distance > 0,
@@ -1154,7 +1180,7 @@ function buildSummary(
     {
       title: "Total Elevation",
       value: totals.elevation > 0
-        ? formatElevation(totals.elevation, payload.units || { elevation: "ft" })
+        ? formatElevation(totals.elevation, summaryUnits)
         : STAT_PLACEHOLDER,
       metricKey: "elevation_gain",
       filterable: totals.elevation > 0,
@@ -1818,7 +1844,7 @@ function buildStatsOverview(payload, types, years, color, options = {}) {
   const yearsDesc = years.slice().sort((a, b) => b - a);
   const emptyColor = DEFAULT_COLORS[0];
   const selectedYearSet = new Set(yearsDesc.map(Number));
-  const units = payload.units || { distance: "mi", elevation: "ft" };
+  const units = normalizeUnits(options.units || payload.units || DEFAULT_UNITS);
   const onFactStateChange = typeof options.onFactStateChange === "function"
     ? options.onFactStateChange
     : null;
@@ -2402,6 +2428,7 @@ async function init() {
     { value: "all", label: "All Activities" },
     ...payload.types.map((type) => ({ value: type, label: displayType(type) })),
   ];
+  const setupUnits = normalizeUnits(payload.units || DEFAULT_UNITS);
 
   function renderButtons(container, options, onSelect) {
     if (!container) return;
@@ -2478,6 +2505,8 @@ async function init() {
   let selectedTypes = new Set();
   let allYearsMode = true;
   let selectedYears = new Set();
+  let currentUnitSystem = getUnitSystemFromUnits(setupUnits);
+  let currentUnits = getUnitsForSystem(currentUnitSystem);
   let currentVisibleYears = payload.years.slice().sort((a, b) => b - a);
   let hoverClearedSummaryType = null;
   let hoverClearedSummaryYearMetricKey = null;
@@ -2644,6 +2673,30 @@ async function init() {
   function syncResetAllButtonState() {
     if (!resetAllButton) return;
     resetAllButton.disabled = isDefaultFilterState();
+  }
+
+  function syncUnitToggleState() {
+    const isMetric = currentUnitSystem === "metric";
+    if (imperialUnitsButton) {
+      imperialUnitsButton.classList.toggle("active", !isMetric);
+      imperialUnitsButton.setAttribute("aria-pressed", isMetric ? "false" : "true");
+    }
+    if (metricUnitsButton) {
+      metricUnitsButton.classList.toggle("active", isMetric);
+      metricUnitsButton.setAttribute("aria-pressed", isMetric ? "true" : "false");
+    }
+  }
+
+  function setUnitSystem(system) {
+    const normalizedSystem = system === "metric" ? "metric" : "imperial";
+    if (normalizedSystem === currentUnitSystem) {
+      syncUnitToggleState();
+      return;
+    }
+    currentUnitSystem = normalizedSystem;
+    currentUnits = getUnitsForSystem(currentUnitSystem);
+    syncUnitToggleState();
+    update();
   }
 
   function setYearMetricSelection(year, metricKey) {
@@ -3101,6 +3154,7 @@ async function init() {
         const combinedSelectionKey = `combined:${types.join("|")}`;
         if (showMoreStats) {
           const frequencyCard = buildStatsOverview(payload, types, cardYears, frequencyCardColor, {
+            units: currentUnits,
             initialFactKey: selectedFrequencyFactKey,
             initialMetricKey: initialFrequencyMetricKey,
             onFactStateChange: onFrequencyFactStateChange,
@@ -3142,7 +3196,7 @@ async function init() {
               "all",
               year,
               aggregates,
-              payload.units || { distance: "mi", elevation: "ft" },
+              currentUnits,
               {
                 colorForEntry,
                 metricHeatmapColor: frequencyCardColor,
@@ -3182,6 +3236,7 @@ async function init() {
           const typeCardKey = `type:${type}`;
           if (showMoreStats) {
             const frequencyCard = buildStatsOverview(payload, [type], cardYears, frequencyCardColor, {
+              units: currentUnits,
               initialFactKey: selectedFrequencyFactKey,
               initialMetricKey: initialFrequencyMetricKey,
               onFactStateChange: onFrequencyFactStateChange,
@@ -3200,7 +3255,7 @@ async function init() {
             const aggregates = payload.aggregates?.[String(year)]?.[type] || {};
             const total = yearTotals.get(year) || 0;
             const card = total > 0
-              ? buildCard(type, year, aggregates, payload.units || { distance: "mi", elevation: "ft" }, {
+              ? buildCard(type, year, aggregates, currentUnits, {
                 metricHeatmapColor: getColors(type)[4],
                 cardMetricYear: year,
                 initialMetricKey: getInitialYearMetricKey(year),
@@ -3248,6 +3303,7 @@ async function init() {
       payload,
       types,
       years,
+      currentUnits,
       showTypeBreakdown,
       showActiveDays,
       payload.types,
@@ -3377,6 +3433,16 @@ async function init() {
       update();
     });
   }
+  if (imperialUnitsButton) {
+    imperialUnitsButton.addEventListener("click", () => {
+      setUnitSystem("imperial");
+    });
+  }
+  if (metricUnitsButton) {
+    metricUnitsButton.addEventListener("click", () => {
+      setUnitSystem("metric");
+    });
+  }
   if (resetAllButton) {
     resetAllButton.addEventListener("click", () => {
       if (isDefaultFilterState()) {
@@ -3433,6 +3499,7 @@ async function init() {
       update({ menuOnly: true });
     }
   });
+  syncUnitToggleState();
   update();
 
   if (document.fonts?.ready) {

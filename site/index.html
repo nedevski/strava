@@ -300,7 +300,44 @@
         transition: border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
       }
 
+      .units-toggle {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(71, 85, 105, 0.2);
+      }
+
+      .units-toggle-button {
+        background: transparent;
+        color: var(--text);
+        border: 0;
+        padding: 8px 12px;
+        font-size: 13px;
+        min-width: 70px;
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
+      }
+
+      .units-toggle-button + .units-toggle-button {
+        border-left: 1px solid rgba(148, 163, 184, 0.35);
+      }
+
+      .units-toggle-button.active {
+        background: rgba(56, 189, 248, 0.2);
+      }
+
+      .units-toggle-button:focus-visible {
+        outline: 2px solid rgba(56, 189, 248, 0.7);
+        outline-offset: -2px;
+      }
+
       @media (hover: hover) and (pointer: fine) {
+        .units-toggle-button:hover {
+          background: rgba(56, 189, 248, 0.14);
+        }
+
         .filter-clear-button:hover:not(:disabled) {
           border-color: var(--accent);
           box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
@@ -337,6 +374,8 @@
 
       #resetAllRow {
         grid-row: 4;
+        align-items: center;
+        gap: 8px;
       }
 
       .filter-button {
@@ -1281,13 +1320,24 @@
           display: none;
         }
         #resetAllRow {
-          display: flex;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           grid-column: 1;
           grid-row: 4;
           width: min(360px, 100%);
+          gap: 8px;
+          align-items: stretch;
+        }
+        #resetAllRow .units-toggle {
+          width: 100%;
+        }
+        #resetAllRow .units-toggle-button {
+          flex: 1 1 50%;
+          min-width: 0;
         }
         #resetAllRow .filter-clear-button {
           width: 100%;
+          min-width: 0;
         }
         .repo-link {
           grid-column: 1;
@@ -1404,6 +1454,10 @@
           <div class="button-row" id="typeButtons"></div>
           <div class="button-row" id="yearButtons"></div>
           <div class="button-row" id="resetAllRow">
+            <div class="units-toggle" id="unitsToggle" role="group" aria-label="Units">
+              <button type="button" class="units-toggle-button" id="imperialUnitsButton" aria-pressed="false">Imperial</button>
+              <button type="button" class="units-toggle-button" id="metricUnitsButton" aria-pressed="false">Metric</button>
+            </div>
             <button type="button" class="filter-clear-button" id="resetAllButton" disabled>Reset All</button>
           </div>
           <div class="controls">
