@@ -21,6 +21,24 @@ have_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
 
+expand_path() {
+  local path="$1"
+  if [[ "$path" == "~" ]]; then
+    printf '%s\n' "$HOME"
+    return 0
+  fi
+  if [[ "$path" == ~/* ]]; then
+    printf '%s/%s\n' "$HOME" "${path#~/}"
+    return 0
+  fi
+  printf '%s\n' "$path"
+}
+
+is_compatible_clone() {
+  local repo_dir="$1"
+  [[ -d "$repo_dir/.git" && -f "$repo_dir/$SETUP_SCRIPT_REL" ]]
+}
+
 prompt_yes_no() {
   local prompt="$1"
   local default="${2:-Y}"
@@ -88,12 +106,41 @@ detect_local_repo_root() {
 
 ensure_repo_dir_ready() {
   local repo_dir="$1"
-  if [[ -d "$repo_dir/.git" && -f "$repo_dir/$SETUP_SCRIPT_REL" ]]; then
+  if is_compatible_clone "$repo_dir"; then
     return 0
   fi
   if [[ -e "$repo_dir" ]]; then
     fail "Path already exists and is not a compatible clone: $repo_dir"
   fi
+}
+
+prompt_existing_clone_path() {
+  local default_repo_dir="$1"
+  local raw repo_dir
+
+  printf '\n' >&2
+  printf 'Default clone directory is: %s\n' "$default_repo_dir" >&2
+  printf 'Choose this for a fresh setup, or point to an existing compatible clone.\n' >&2
+  if ! prompt_yes_no "Use an existing local clone path?" "N"; then
+    return 1
+  fi
+
+  while true; do
+    read -r -p "Existing clone path (press Enter to cancel): " raw || return 1
+    raw="$(printf '%s' "$raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    if [[ -z "$raw" ]]; then
+      return 1
+    fi
+
+    repo_dir="$(expand_path "$raw")"
+    if is_compatible_clone "$repo_dir"; then
+      printf '%s\n' "$repo_dir"
+      return 0
+    fi
+
+    warn "Not a compatible clone: $repo_dir"
+    warn "Expected both: $repo_dir/.git and $repo_dir/$SETUP_SCRIPT_REL"
+  done
 }
 
 configure_fork_remotes() {
@@ -166,7 +213,7 @@ run_setup() {
 
 main() {
   local upstream_repo="$DEFAULT_UPSTREAM_REPO"
-  local repo_dir local_root
+  local repo_dir local_root existing_clone_path
 
   require_cmd git
   require_cmd python3
@@ -186,6 +233,17 @@ main() {
   info "No compatible local clone detected in current working tree."
   info "Upstream repository: $upstream_repo"
   info "Target clone directory: $repo_dir"
+  if existing_clone_path="$(prompt_existing_clone_path "$repo_dir")"; then
+    repo_dir="$existing_clone_path"
+    info "Using existing clone at $repo_dir"
+    if prompt_yes_no "Run setup now?" "Y"; then
+      run_setup "$repo_dir" "$@"
+    else
+      info "Setup not run. Next step:"
+      info "  (cd \"$repo_dir\" && ./scripts/bootstrap.sh)"
+    fi
+    return 0
+  fi
 
   if prompt_yes_no "Fork the repo to your GitHub account first?" "Y"; then
     fork_and_clone "$upstream_repo" "$repo_dir"
