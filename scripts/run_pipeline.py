@@ -34,6 +34,9 @@ RESETTABLE_RAW_DIRS = [
     os.path.join("activities", "raw", "strava"),
     os.path.join("activities", "raw", "garmin"),
 ]
+SOURCE_HINT_STRAVA = "strava"
+SOURCE_HINT_GARMIN = "garmin"
+SOURCE_HINT_MIXED = "mixed"
 README_LIVE_SITE_RE = re.compile(
     r"(?im)^(-\s*(?:Live site:\s*\[Interactive Heatmaps\]|View the Interactive \[Activity Dashboard\])\()https?://[^)]+(\)\s*)$",
     re.IGNORECASE,
@@ -147,6 +150,23 @@ def _reset_for_source_switch() -> None:
     _clear_state_for_source_switch()
 
 
+def _detect_persisted_source_hint() -> Optional[str]:
+    has_strava_state = os.path.exists(os.path.join("data", "backfill_state_strava.json"))
+    has_garmin_state = os.path.exists(os.path.join("data", "backfill_state_garmin.json"))
+    has_strava_raw = os.path.isdir(os.path.join("activities", "raw", "strava"))
+    has_garmin_raw = os.path.isdir(os.path.join("activities", "raw", "garmin"))
+
+    has_strava = has_strava_state or has_strava_raw
+    has_garmin = has_garmin_state or has_garmin_raw
+    if has_strava and has_garmin:
+        return SOURCE_HINT_MIXED
+    if has_strava:
+        return SOURCE_HINT_STRAVA
+    if has_garmin:
+        return SOURCE_HINT_GARMIN
+    return None
+
+
 def _sync_for_source(source: str, dry_run: bool, prune_deleted: bool):
     if source == "strava":
         return sync_strava(dry_run=dry_run, prune_deleted=prune_deleted)
@@ -172,14 +192,31 @@ def run_pipeline(
         _reset_for_source_switch()
     elif (
         previous_source is None
-        and source != "strava"
         and os.path.exists(os.path.join("data", "activities_normalized.json"))
     ):
-        print(
-            "No saved source marker found; resetting persisted outputs, backfill state, "
-            "and raw caches to avoid mixed-source history."
-        )
-        _reset_for_source_switch()
+        source_hint = _detect_persisted_source_hint()
+        should_reset = False
+        if source_hint == SOURCE_HINT_MIXED:
+            print(
+                "No saved source marker found and both Strava and Garmin persisted state were detected; "
+                "resetting persisted outputs, backfill state, and raw caches to avoid mixed-source history."
+            )
+            should_reset = True
+        elif source_hint and source_hint != source:
+            print(
+                f"No saved source marker found and persisted state suggests '{source_hint}' history; "
+                f"selected source is '{source}', so resetting persisted outputs, backfill state, and raw caches."
+            )
+            should_reset = True
+        elif source != "strava":
+            print(
+                "No saved source marker found; resetting persisted outputs, backfill state, "
+                "and raw caches to avoid mixed-source history."
+            )
+            should_reset = True
+
+        if should_reset:
+            _reset_for_source_switch()
 
     if not skip_sync:
         summary = _sync_for_source(source, dry_run=dry_run, prune_deleted=prune_deleted)

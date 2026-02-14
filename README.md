@@ -12,9 +12,22 @@ Automatically generates a free, interactive dashboard updated daily on GitHub Pa
 
 ## Quick Start
 
-### Option 1 (Recommended): Run the setup script
+### Run the setup script
 
-Fastest path: fork, run one script, and let it configure the repository for you.
+Use either option below. Both run the same setup logic.
+
+#### Option A (single command bootstrap)
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/aspain/git-sweaty/main/scripts/bootstrap.sh)
+```
+
+This command will guide you through:
+- `gh auth login` (if needed)
+- forking and cloning (if not already done)
+- running interactive setup
+
+#### Option B (manual clone + local bootstrap script)
 
 1. Fork this repo: [Fork this repository](../../fork)
 2. Clone your fork and enter it:
@@ -23,86 +36,21 @@ Fastest path: fork, run one script, and let it configure the repository for you.
    git clone https://github.com/<your-username>/<repo-name>.git
    cd <repo-name>
    ```
-3. Sign in to GitHub CLI:
+3. Run bootstrap:
 
    ```bash
-   gh auth login
+   ./scripts/bootstrap.sh
    ```
 
-4. Run setup:
+Follow the terminal prompts to choose a source and unit preference:
+- `strava` - terminal will link to [Strava API application](https://www.strava.com/settings/api). Create an application first and set **Authorization Callback Domain** to `localhost`. The prompt will then ask for `Client ID` and `Client Secret`
+- `garmin` - terminal prompts for Garmin email/password
+- unit preference (`US` or `Metric`)
 
-   ```bash
-   python3 scripts/setup_auth.py
-   ```
+The setup may take several minutes to complete when run for the first time. If any automation step fails, the script prints steps to remedy the failed step.  
+Once the script succeeds, it will provide the URL for your dashboard.
 
-   Follow the terminal prompts to choose a source and unit preference:
-      - `strava` - terminal will link to [Strava API application](https://www.strava.com/settings/api). Create an application first and set **Authorization Callback Domain** to `localhost`. The prompt will then ask for `Client ID` and `Client Secret`
-      - `garmin` - terminal prompts for Garmin email/password
-      - unit preference (`US` or `Metric`)
-
-   The setup may take several minutes to complete when run for the first time. If any automation step fails, the script prints steps to remedy the failed step.  
-   Once the script succeeds, it will provide the URL for your dashboard.
-
-
-### Option 2: Manual setup (no local clone required)
-
-1. Fork this repo to your account: [Fork this repository](../../fork)
-
-2. Add `DASHBOARD_SOURCE` repo variable (repo → [Settings → Secrets and variables → Actions](../../settings/variables/actions)):
-   - `DASHBOARD_SOURCE` = `strava` or `garmin`
-
-3. Add source-specific GitHub secrets (repo → [Settings → Secrets and variables → Actions](../../settings/secrets/actions)):
-   - For `garmin`:
-      - Preferred: `GARMIN_TOKENS_B64`
-      - Fallback: `GARMIN_EMAIL` and `GARMIN_PASSWORD`
-   - For `strava`:
-      - Step 1: Create a [Strava API application](https://www.strava.com/settings/api). Set **Authorization Callback Domain** to `localhost`, then copy:
-         - `Client ID`
-         - `Client Secret`
-
-      - Step 2: Generate a **refresh token** via OAuth (the token shown on the Strava API page often does **not** work).
-         - Open this URL in your browser (replace CLIENT_ID with the Client ID value from your Strava API application page):
-
-            ```text
-            https://www.strava.com/oauth/authorize?client_id=CLIENT_ID&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read,activity:read_all
-            ```
-
-         - **Note:** After approval you’ll be redirected to a `localhost` URL that won’t load. That’s expected.
-           Example redirect URL:
-
-            ```text
-            http://localhost/exchange_token?state=&code=12345&scope=read,activity:read_all
-            ```
-
-         - Copy the `code` value from the redirect URL and exchange it:
-
-            ```bash
-            curl -X POST https://www.strava.com/oauth/token \
-              -d client_id=CLIENT_ID_FROM_STRAVA_API_APP \
-              -d client_secret=CLIENT_SECRET_FROM_STRAVA_API_APP \
-              -d code=CODE_FROM_THE_REDIRECT_URL \
-              -d grant_type=authorization_code
-            ```
-
-         - Copy `refresh_token` from the response.
-
-      - Step 3: Add these secrets:
-         - `STRAVA_CLIENT_ID` = Client ID from step 1
-         - `STRAVA_CLIENT_SECRET` = Client Secret from step 1
-         - `STRAVA_REFRESH_TOKEN` = refresh token from step 2
-
-4. Enable GitHub Pages (repo → [Settings → Pages](../../settings/pages)):
-   - Under **Build and deployment**, set **Source** to **GitHub Actions**.
-
-5. Run [Sync Heatmaps](../../actions/workflows/sync.yml):
-   - If GitHub shows an **Enable workflows** button in [Actions](../../actions), click it first.
-   - Go to [Actions](../../actions) → [Sync Heatmaps](../../actions/workflows/sync.yml) → **Run workflow**.
-   - Optional: override the source in `workflow_dispatch` input.
-   - The same workflow is also scheduled in `.github/workflows/sync.yml` (daily at `15:00 UTC`).
-
-6. Open your live site at `https://<your-username>.github.io/<repo-name>/` after deploy finishes.
-
-## Updating Your Repository
+### Updating Your Repository
 
 - To pull in new updates and features from the original repo, use GitHub's **Sync fork** button on your fork's `main` branch.
 - Activity data is stored on a dedicated `dashboard-data` branch and deployed from there
@@ -113,31 +61,41 @@ Fastest path: fork, run one script, and let it configure the repository for you.
 
 You can switch between `strava` and `garmin` any time, even after initial setup.
 
-- Re-run `python3 scripts/setup_auth.py` and choose a different source (or pass `--source strava` / `--source garmin`).
+- Re-run `./scripts/bootstrap.sh` and choose a different source.
+- If you re-run setup and choose the same source, setup asks whether to force a one-time full backfill for that run.
 
 ## Configuration (Optional)
 
 Everything in this section is optional. Defaults work without changes.
-Base settings live in `config.yaml`.
+Base settings live in `config.yaml`, and `config.local.yaml` overrides them when present.
 
-Key options:
+Auth + source settings:
 - `source` (`strava` or `garmin`)
-- `garmin.strict_token_only` (when `true`, requires `garmin.token_store_b64` and disables email/password fallback auth in pipeline runs)
+- `strava.client_id`, `strava.client_secret`, `strava.refresh_token`
+- `garmin.token_store_b64`, `garmin.email`, `garmin.password`
+- `garmin.strict_token_only` (when `true`, Garmin sync requires `garmin.token_store_b64` and does not fall back to email/password auth)
+
+Sync scope + backfill behavior:
 - `sync.start_date` (optional `YYYY-MM-DD` lower bound for history)
 - `sync.lookback_years` (optional rolling lower bound; used only when `sync.start_date` is unset)
 - `sync.recent_days` (sync recent activities even while backfilling)
-- `sync.resume_backfill` (persist cursor to continue older pages across days)
-- `sync.prune_deleted` (remove local activities no longer returned by the selected source in the current sync scope)
-- `activities.types` (featured/allowed activity types shown first in UI; key name is historical)
+- `sync.resume_backfill` (persist cursor so backfills continue across scheduled runs)
+- `sync.per_page` (page size used when fetching provider activities; default `200`)
+- `sync.prune_deleted` (remove local activities no longer returned by the provider; pruning only happens on runs that perform a full backfill scan)
+
+Activity type behavior:
+- `activities.types` (featured order in UI, and acts as allowlist when `activities.include_all_types` is `false`)
 - `activities.include_all_types` (when `true`, include all seen sport types; when `false`, include only `activities.types`)
-- `activities.exclude_types` (optional `SportType` names to exclude without disabling inclusion of future new types)
-- `activities.group_other_types` (when `true`, allow non-Strava grouping buckets like `WaterSports`; default `false`)
-- `activities.other_bucket` (fallback group name when no smart match is found)
-- `activities.group_aliases` (optional explicit map of a raw/canonical type to a group)
-- `activities.type_aliases` (optional map from raw source `sport_type`/`type` values to canonical names)
+- `activities.exclude_types` (explicit type exclusions, even when `include_all_types` is `true`)
+- `activities.type_aliases` (map raw provider type names to canonical type names before grouping/filtering)
+- `activities.group_aliases` (map canonical type names to explicit grouped labels)
+- `activities.group_other_types` (when `true`, non-featured types are grouped into broader buckets; repo default is `false`)
+- `activities.other_bucket` (fallback group name when grouped type matching has no hit)
+
+Display + rate-limit settings:
 - `units.distance` (`mi` or `km`)
 - `units.elevation` (`ft` or `m`)
-- `rate_limits.*` (Strava API throttling caps; ignored for Garmin)
+- `rate_limits.*` (Strava API pacing caps used by sync; ignored for Garmin)
 
 ## Notes
 
