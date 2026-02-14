@@ -15,6 +15,10 @@ let OTHER_BUCKET = "OtherSports";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const TOUCH_TAP_MAX_MOVEMENT_PX = 8;
+const TOUCH_TAP_MAX_DURATION_MS = 450;
+const TOUCH_TAP_CLICK_MATCH_WINDOW_MS = 900;
+const TOUCH_TAP_SCROLL_THRESHOLD_PX = 2;
 
 const typeButtons = document.getElementById("typeButtons");
 const yearButtons = document.getElementById("yearButtons");
@@ -551,6 +555,118 @@ function getTooltipEventPoint(event, fallbackElement) {
   };
 }
 
+function findScrollableTouchContainer(node) {
+  let current = node;
+  while (current && current !== document.body) {
+    if (current instanceof Element) {
+      const style = window.getComputedStyle(current);
+      const overflowX = String(style.overflowX || "");
+      const overflowY = String(style.overflowY || "");
+      const scrollsX = (overflowX === "auto" || overflowX === "scroll")
+        && current.scrollWidth > current.clientWidth;
+      const scrollsY = (overflowY === "auto" || overflowY === "scroll")
+        && current.scrollHeight > current.clientHeight;
+      if (scrollsX || scrollsY) {
+        return current;
+      }
+    }
+    current = current.parentElement;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+
+function createTouchTapGuard(target) {
+  let pointerState = null;
+  let lastPointerResult = null;
+
+  const onPointerMove = (event) => {
+    if (!pointerState || event.pointerId !== pointerState.pointerId) return;
+    const dx = Math.abs((Number(event.clientX) || 0) - pointerState.startX);
+    const dy = Math.abs((Number(event.clientY) || 0) - pointerState.startY);
+    if (dx > TOUCH_TAP_MAX_MOVEMENT_PX || dy > TOUCH_TAP_MAX_MOVEMENT_PX) {
+      pointerState.moved = true;
+    }
+  };
+
+  target.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (event.pointerType && event.pointerType !== "touch" && event.pointerType !== "pen") return;
+      const scrollContainer = findScrollableTouchContainer(target);
+      pointerState = {
+        pointerId: event.pointerId,
+        startX: Number(event.clientX) || 0,
+        startY: Number(event.clientY) || 0,
+        startTime: Number(event.timeStamp) || performance.now(),
+        moved: false,
+        cancelled: false,
+        scrollContainer,
+        startScrollLeft: Number(scrollContainer?.scrollLeft || 0),
+        startScrollTop: Number(scrollContainer?.scrollTop || 0),
+      };
+      lastPointerResult = null;
+    },
+    { passive: true },
+  );
+
+  target.addEventListener("pointermove", onPointerMove, { passive: true });
+
+  target.addEventListener(
+    "pointercancel",
+    (event) => {
+      if (!pointerState || event.pointerId !== pointerState.pointerId) return;
+      pointerState.cancelled = true;
+    },
+    { passive: true },
+  );
+
+  target.addEventListener(
+    "pointerup",
+    (event) => {
+      if (!pointerState || event.pointerId !== pointerState.pointerId) return;
+      onPointerMove(event);
+      const durationMs = Math.max(
+        0,
+        (Number(event.timeStamp) || performance.now()) - pointerState.startTime,
+      );
+      const scrollLeft = Number(pointerState.scrollContainer?.scrollLeft || 0);
+      const scrollTop = Number(pointerState.scrollContainer?.scrollTop || 0);
+      const scrollDeltaX = Math.abs(scrollLeft - pointerState.startScrollLeft);
+      const scrollDeltaY = Math.abs(scrollTop - pointerState.startScrollTop);
+      const scrolled = scrollDeltaX > TOUCH_TAP_SCROLL_THRESHOLD_PX
+        || scrollDeltaY > TOUCH_TAP_SCROLL_THRESHOLD_PX;
+
+      lastPointerResult = {
+        isTap: !pointerState.moved && !pointerState.cancelled && !scrolled
+          && durationMs <= TOUCH_TAP_MAX_DURATION_MS,
+        x: Number(event.clientX) || pointerState.startX,
+        y: Number(event.clientY) || pointerState.startY,
+        time: Number(event.timeStamp) || performance.now(),
+      };
+
+      pointerState = null;
+    },
+    { passive: true },
+  );
+
+  return (event) => {
+    if (!lastPointerResult) return false;
+    const clickTime = Number(event?.timeStamp);
+    const clickX = Number(event?.clientX);
+    const clickY = Number(event?.clientY);
+    const withinWindow = !Number.isFinite(clickTime)
+      || Math.abs(clickTime - lastPointerResult.time) <= TOUCH_TAP_CLICK_MATCH_WINDOW_MS;
+    const atExpectedPoint = (!Number.isFinite(clickX) || !Number.isFinite(clickY))
+      || (
+        Math.abs(clickX - lastPointerResult.x) <= (TOUCH_TAP_MAX_MOVEMENT_PX + 2)
+        && Math.abs(clickY - lastPointerResult.y) <= (TOUCH_TAP_MAX_MOVEMENT_PX + 2)
+      );
+    const shouldHandle = lastPointerResult.isTap && withinWindow && atExpectedPoint;
+    lastPointerResult = null;
+    return shouldHandle;
+  };
+}
+
 function attachTooltip(cell, text) {
   if (!text) return;
   if (!isTouch) {
@@ -563,7 +679,9 @@ function attachTooltip(cell, text) {
     cell.addEventListener("mouseleave", hideTooltip);
     return;
   }
+  const isIntentionalTouchTap = createTouchTapGuard(cell);
   cell.addEventListener("click", (event) => {
+    if (!isIntentionalTouchTap(event)) return;
     if (cell.classList.contains("active")) {
       cell.classList.remove("active");
       hideTooltip();
@@ -1304,7 +1422,9 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
       });
       cell.addEventListener("mouseleave", hideTooltip);
     } else {
+      const isIntentionalTouchTap = createTouchTapGuard(cell);
       cell.addEventListener("click", (event) => {
+        if (!isIntentionalTouchTap(event)) return;
         if (cell.classList.contains("active")) {
           cell.classList.remove("active");
           hideTooltip();
