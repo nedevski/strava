@@ -373,8 +373,13 @@
       }
 
       #resetAllRow {
+        grid-column: 1 / -1;
+        justify-self: center;
         grid-row: 4;
+        display: inline-flex;
+        flex-wrap: nowrap;
         align-items: center;
+        justify-content: flex-start;
         gap: 8px;
       }
 
@@ -1252,6 +1257,7 @@
           --mobile-header-padding-inline: 16px;
           --mobile-header-padding-block: 16px;
           --mobile-header-row-gap: 4px;
+          --mobile-control-row-gap: 8px;
           padding: var(--mobile-header-padding-block) var(--mobile-header-padding-inline);
         }
         .card {
@@ -1286,13 +1292,14 @@
           flex-direction: column;
           width: min(360px, 100%);
           align-items: stretch;
-          gap: 8px;
+          gap: var(--mobile-control-row-gap);
         }
         .filter-control-row {
           display: grid;
           grid-template-columns: minmax(0, 1fr) 86px;
           align-items: flex-start;
           width: 100%;
+          gap: var(--mobile-control-row-gap);
         }
         .filter-menu-button {
           font-size: 13px;
@@ -1325,7 +1332,9 @@
           grid-column: 1;
           grid-row: 4;
           width: min(360px, 100%);
-          gap: 8px;
+          justify-self: center;
+          margin-top: calc(var(--mobile-control-row-gap) - var(--mobile-header-row-gap));
+          gap: var(--mobile-control-row-gap);
           align-items: start;
         }
         #resetAllRow .units-toggle {
