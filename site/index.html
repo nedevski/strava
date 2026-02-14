@@ -55,6 +55,8 @@
       html {
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
+        width: 100%;
+        overflow-x: hidden;
       }
 
       * {
@@ -69,9 +71,13 @@
           fixed;
         min-height: 100vh;
         padding: 40px 20px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
       }
 
       .app {
+        width: 100%;
         max-width: 1240px;
         margin: 0 auto;
         display: grid;
@@ -81,7 +87,6 @@
 
       .heatmaps,
       .type-section,
-      .type-header,
       .type-list,
       .labeled-card-row,
       .card,
@@ -454,9 +459,6 @@
       .type-header {
         font-size: 18px;
         font-weight: 600;
-        max-width: 100%;
-        overflow-wrap: anywhere;
-        word-break: break-word;
       }
 
       .type-list {
