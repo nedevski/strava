@@ -558,6 +558,17 @@ function formatActivitiesTitle(types) {
   return `${types.map((type) => displayType(type)).join(" + ")} Activities`;
 }
 
+function formatCombinedSelectionHeader(types, allSelected) {
+  if (allSelected) {
+    return "All Activities";
+  }
+  if (isNarrowLayoutViewport()) {
+    const count = Array.isArray(types) ? types.length : 0;
+    return `${count} Activities Selected`;
+  }
+  return formatActivitiesTitle(types);
+}
+
 function pluralizeLabel(label) {
   if (/(s|x|z|ch|sh)$/i.test(label)) return `${label}es`;
   if (/[^aeiou]y$/i.test(label)) return `${label.slice(0, -1)}ies`;
@@ -2919,7 +2930,7 @@ async function init() {
         section.className = "type-section";
         const header = document.createElement("div");
         header.className = "type-header";
-        header.textContent = allAvailableTypesSelected ? "All Activities" : formatActivitiesTitle(types);
+        header.textContent = formatCombinedSelectionHeader(types, allAvailableTypesSelected);
         section.appendChild(header);
         const list = document.createElement("div");
         list.className = "type-list";
