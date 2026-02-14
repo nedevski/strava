@@ -601,7 +601,7 @@ function buildMultiTypeBackgroundImage(types) {
 }
 
 function displayType(type) {
-  return TYPE_META[type]?.label || prettifyType(type);
+  return capitalizeLabelStart(TYPE_META[type]?.label || prettifyType(type));
 }
 
 function summaryTypeTitle(type) {
@@ -674,10 +674,18 @@ function fallbackColor(type) {
 function prettifyType(type) {
   const value = String(type || "Other").trim();
   if (TYPE_LABEL_OVERRIDES[value]) return TYPE_LABEL_OVERRIDES[value];
-  return value
+  return capitalizeLabelStart(value
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/_/g, " ")
-    .trim();
+    .trim());
+}
+
+function capitalizeLabelStart(label) {
+  const value = String(label || "").trim();
+  if (!value) return "Other";
+  const firstLetterIndex = value.search(/[a-z]/i);
+  if (firstLetterIndex < 0) return value;
+  return `${value.slice(0, firstLetterIndex)}${value[firstLetterIndex].toUpperCase()}${value.slice(firstLetterIndex + 1)}`;
 }
 
 function formatNumber(value, fractionDigits) {

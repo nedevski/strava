@@ -309,6 +309,17 @@ def _slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (value or "").lower())
 
 
+def _capitalize_label_start(label: str) -> str:
+    value = str(label or "").strip()
+    if not value:
+        return "Other"
+    first_letter_match = re.search(r"[A-Za-z]", value)
+    if not first_letter_match:
+        return value
+    index = first_letter_match.start()
+    return f"{value[:index]}{value[index].upper()}{value[index + 1:]}"
+
+
 def _virtual_variant(slug: str) -> str:
     if "row" in slug:
         return "VirtualRow"
@@ -405,12 +416,12 @@ def normalize_activity_type(
 
 def type_label(activity_type: str) -> str:
     if activity_type in DEFAULT_TYPE_LABELS:
-        return DEFAULT_TYPE_LABELS[activity_type]
+        return _capitalize_label_start(DEFAULT_TYPE_LABELS[activity_type])
     if activity_type in STRAVA_ENUM_TYPES:
         spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", activity_type or "")
-        return spaced.replace("_", " ").strip() or "Other"
+        return _capitalize_label_start(spaced.replace("_", " ").strip())
     spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", activity_type or "")
-    return spaced.replace("_", " ").strip() or "Other"
+    return _capitalize_label_start(spaced.replace("_", " ").strip())
 
 
 def _fallback_color(activity_type: str) -> str:
