@@ -466,6 +466,15 @@ function getViewportMetrics() {
   };
 }
 
+function getTooltipScale() {
+  const viewport = window.visualViewport;
+  const scale = Number(viewport?.scale);
+  if (!Number.isFinite(scale) || scale <= 0) {
+    return 1;
+  }
+  return 1 / scale;
+}
+
 function positionTooltip(x, y) {
   const padding = 12;
   const rect = tooltip.getBoundingClientRect();
@@ -486,12 +495,15 @@ function positionTooltip(x, y) {
 
 function showTooltip(text, x, y) {
   tooltip.textContent = text;
+  const tooltipScale = getTooltipScale();
   if (isTouch) {
     tooltip.classList.add("touch");
-    tooltip.style.transform = "none";
+    tooltip.style.transform = `scale(${tooltipScale})`;
+    tooltip.style.transformOrigin = "top left";
   } else {
     tooltip.classList.remove("touch");
-    tooltip.style.transform = "translateY(-8px)";
+    tooltip.style.transform = `translateY(-8px) scale(${tooltipScale})`;
+    tooltip.style.transformOrigin = "top left";
   }
   tooltip.classList.add("visible");
   requestAnimationFrame(() => positionTooltip(x, y));
