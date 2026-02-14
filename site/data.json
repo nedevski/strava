@@ -1695,7 +1695,7 @@
       }
     }
   },
-  "generated_at": "2026-02-14T12:44:46.144538+00:00",
+  "generated_at": "2026-02-14T13:46:01.074121+00:00",
   "other_bucket": "OtherSports",
   "source": "strava",
   "type_meta": {
@@ -1723,8 +1723,8 @@
     "WeightTraining"
   ],
   "units": {
-    "distance": "mi",
-    "elevation": "ft"
+    "distance": "km",
+    "elevation": "m"
   },
   "years": [
     2015,
