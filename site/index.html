@@ -374,6 +374,11 @@
 
       #resetAllRow {
         grid-row: 4;
+        display: flex;
+        flex-wrap: nowrap;
+        width: fit-content;
+        margin-inline: auto;
+        justify-content: flex-start;
         align-items: center;
         gap: 8px;
       }
@@ -1325,6 +1330,7 @@
           grid-column: 1;
           grid-row: 4;
           width: min(360px, 100%);
+          margin-inline: 0;
           gap: 8px;
           align-items: stretch;
         }
