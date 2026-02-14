@@ -95,5 +95,88 @@ class SetupAuthPreflightTests(unittest.TestCase):
         self.assertIn("authorize SSO", message)
 
 
+class SetupAuthDispatchTests(unittest.TestCase):
+    def test_existing_dashboard_source_normalizes_supported_values(self) -> None:
+        with mock.patch(
+            "setup_auth._get_variable",
+            return_value=" Strava ",
+        ):
+            value = setup_auth._existing_dashboard_source("owner/repo")
+        self.assertEqual(value, "strava")
+
+    def test_existing_dashboard_source_ignores_unknown_values(self) -> None:
+        with mock.patch(
+            "setup_auth._get_variable",
+            return_value="something-else",
+        ):
+            value = setup_auth._existing_dashboard_source("owner/repo")
+        self.assertIsNone(value)
+
+    def test_try_dispatch_sync_uses_full_backfill_when_supported(self) -> None:
+        with mock.patch(
+            "setup_auth._run",
+            return_value=_completed_process(returncode=0),
+        ) as run_mock:
+            ok, detail = setup_auth._try_dispatch_sync(
+                "owner/repo",
+                "strava",
+                full_backfill=True,
+            )
+
+        self.assertTrue(ok)
+        self.assertIn("full_backfill=true", detail)
+        run_mock.assert_called_once_with(
+            [
+                "gh",
+                "workflow",
+                "run",
+                "sync.yml",
+                "--repo",
+                "owner/repo",
+                "-f",
+                "source=strava",
+                "-f",
+                "full_backfill=true",
+            ],
+            check=False,
+        )
+
+    def test_try_dispatch_sync_falls_back_when_full_backfill_input_missing(self) -> None:
+        responses = [
+            _completed_process(
+                returncode=1,
+                stderr="could not create workflow dispatch event: HTTP 422: Unexpected inputs provided: [full_backfill]\n",
+            ),
+            _completed_process(returncode=0),
+        ]
+        with mock.patch("setup_auth._run", side_effect=responses):
+            ok, detail = setup_auth._try_dispatch_sync(
+                "owner/repo",
+                "garmin",
+                full_backfill=True,
+            )
+
+        self.assertTrue(ok)
+        self.assertIn("full_backfill input is not declared", detail)
+
+    def test_try_dispatch_sync_falls_back_when_source_input_missing(self) -> None:
+        responses = [
+            _completed_process(
+                returncode=1,
+                stderr="could not create workflow dispatch event: HTTP 422: Unexpected inputs provided: [source]\n",
+            ),
+            _completed_process(returncode=0),
+        ]
+        with mock.patch("setup_auth._run", side_effect=responses):
+            ok, detail = setup_auth._try_dispatch_sync(
+                "owner/repo",
+                "strava",
+                full_backfill=False,
+            )
+
+        self.assertTrue(ok)
+        self.assertIn("workflow does not declare 'source' input", detail)
+
+
 if __name__ == "__main__":
     unittest.main()

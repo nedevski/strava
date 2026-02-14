@@ -14,6 +14,22 @@ Automatically generates a free, interactive dashboard updated daily on GitHub Pa
 
 ### Run the setup script
 
+Use either option below. Both run the same setup logic.
+
+#### Option A (single command bootstrap)
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/aspain/git-sweaty/main/scripts/bootstrap.sh)
+```
+
+This command will guide you through:
+- `gh auth login` (if needed)
+- forking (optional)
+- cloning (if needed)
+- running interactive setup
+
+#### Option B (manual clone + local bootstrap script)
+
 1. Fork this repo: [Fork this repository](../../fork)
 2. Clone your fork and enter it:
 
@@ -21,25 +37,19 @@ Automatically generates a free, interactive dashboard updated daily on GitHub Pa
    git clone https://github.com/<your-username>/<repo-name>.git
    cd <repo-name>
    ```
-3. Sign in to GitHub CLI:
+3. Run bootstrap:
 
    ```bash
-   gh auth login
+   ./scripts/bootstrap.sh
    ```
 
-4. Run setup:
+Follow the terminal prompts to choose a source and unit preference:
+- `strava` - terminal will link to [Strava API application](https://www.strava.com/settings/api). Create an application first and set **Authorization Callback Domain** to `localhost`. The prompt will then ask for `Client ID` and `Client Secret`
+- `garmin` - terminal prompts for Garmin email/password
+- unit preference (`US` or `Metric`)
 
-   ```bash
-   python3 scripts/setup_auth.py
-   ```
-
-   Follow the terminal prompts to choose a source and unit preference:
-      - `strava` - terminal will link to [Strava API application](https://www.strava.com/settings/api). Create an application first and set **Authorization Callback Domain** to `localhost`. The prompt will then ask for `Client ID` and `Client Secret`
-      - `garmin` - terminal prompts for Garmin email/password
-      - unit preference (`US` or `Metric`)
-
-   The setup may take several minutes to complete when run for the first time. If any automation step fails, the script prints steps to remedy the failed step.  
-   Once the script succeeds, it will provide the URL for your dashboard.
+The setup may take several minutes to complete when run for the first time. If any automation step fails, the script prints steps to remedy the failed step.  
+Once the script succeeds, it will provide the URL for your dashboard.
 
 ### Updating Your Repository
 
@@ -52,7 +62,8 @@ Automatically generates a free, interactive dashboard updated daily on GitHub Pa
 
 You can switch between `strava` and `garmin` any time, even after initial setup.
 
-- Re-run `python3 scripts/setup_auth.py` and choose a different source (or pass `--source strava` / `--source garmin`).
+- Re-run `./scripts/bootstrap.sh` and choose a different source.
+- If you re-run setup and choose the same source, setup now asks whether to force a one-time full backfill for that run.
 
 ## Configuration (Optional)
 

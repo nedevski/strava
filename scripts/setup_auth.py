@@ -484,6 +484,38 @@ def _set_variable(name: str, value: str, repo: str) -> None:
         raise RuntimeError(f"Failed to set GitHub variable {name}{detail}")
 
 
+def _get_variable(name: str, repo: str) -> Optional[str]:
+    result = _run(["gh", "variable", "get", name, "--repo", repo], check=False)
+    if result.returncode != 0:
+        return None
+    value = (result.stdout or "").strip()
+    return value if value else None
+
+
+def _existing_dashboard_source(repo: str) -> Optional[str]:
+    value = _get_variable("DASHBOARD_SOURCE", repo)
+    if not value:
+        return None
+    normalized = value.strip().lower()
+    if normalized in {"strava", "garmin"}:
+        return normalized
+    return None
+
+
+def _prompt_full_backfill_choice(source: str) -> bool:
+    print(
+        "\nThis repository is already configured for "
+        f"{source}. You can keep incremental sync or force a full history re-fetch."
+    )
+    choice = _prompt_choice(
+        "Run a full backfill this time? (y/N): ",
+        {"y": "yes", "yes": "yes", "n": "no", "no": "no"},
+        default="n",
+        invalid_message="Please enter 'y' or 'n'.",
+    )
+    return choice == "yes"
+
+
 def _authorize_and_get_code(
     client_id: str,
     redirect_uri: str,
@@ -990,28 +1022,69 @@ def _try_configure_pages(repo: str) -> Tuple[bool, str]:
     return False, "Unable to configure GitHub Pages build type automatically."
 
 
-def _try_dispatch_sync(repo: str, source: str) -> Tuple[bool, str]:
-    with_source = _run(
-        ["gh", "workflow", "run", "sync.yml", "--repo", repo, "-f", f"source={source}"],
-        check=False,
-    )
-    if with_source.returncode == 0:
-        return True, "Dispatched sync.yml via workflow_dispatch."
-
-    stderr_line = _first_stderr_line(with_source.stderr)
-    if "Unexpected inputs provided" in stderr_line and "source" in stderr_line:
-        without_source = _run(
-            ["gh", "workflow", "run", "sync.yml", "--repo", repo],
-            check=False,
+def _try_dispatch_sync(repo: str, source: str, full_backfill: bool = False) -> Tuple[bool, str]:
+    attempts: list[tuple[bool, bool]] = []
+    if full_backfill:
+        attempts.extend(
+            [
+                (True, True),
+                (True, False),
+                (False, True),
+                (False, False),
+            ]
         )
-        if without_source.returncode == 0:
+    else:
+        attempts.extend([(True, False), (False, False)])
+
+    seen: set[tuple[bool, bool]] = set()
+    ordered_attempts = []
+    for attempt in attempts:
+        if attempt in seen:
+            continue
+        seen.add(attempt)
+        ordered_attempts.append(attempt)
+
+    last_unexpected_input_error: Optional[str] = None
+    for include_source, include_full_backfill in ordered_attempts:
+        cmd = ["gh", "workflow", "run", "sync.yml", "--repo", repo]
+        if include_source:
+            cmd.extend(["-f", f"source={source}"])
+        if include_full_backfill:
+            cmd.extend(["-f", "full_backfill=true"])
+
+        result = _run(cmd, check=False)
+        if result.returncode == 0:
+            if include_source and include_full_backfill:
+                return (
+                    True,
+                    "Dispatched sync.yml via workflow_dispatch with source and full_backfill=true.",
+                )
+            if include_source and full_backfill:
+                return (
+                    True,
+                    "Dispatched sync.yml via workflow_dispatch with source input; full_backfill input is not declared by this workflow.",
+                )
+            if include_full_backfill:
+                return (
+                    True,
+                    "Dispatched sync.yml via workflow_dispatch with full_backfill=true; source input is not declared by this workflow.",
+                )
+            if include_source:
+                return True, "Dispatched sync.yml via workflow_dispatch."
             return (
                 True,
                 "Dispatched sync.yml via workflow_dispatch (workflow does not declare 'source' input; using DASHBOARD_SOURCE variable/default).",
             )
-        return False, _first_stderr_line(without_source.stderr)
 
-    return False, stderr_line
+        stderr_line = _first_stderr_line(result.stderr)
+        if "Unexpected inputs provided" in stderr_line:
+            last_unexpected_input_error = stderr_line
+            continue
+        return False, stderr_line
+
+    if last_unexpected_input_error:
+        return False, last_unexpected_input_error
+    return False, "Unable to dispatch sync.yml via workflow_dispatch."
 
 
 def _try_dispatch_pages(repo: str) -> Tuple[bool, str]:
@@ -1201,7 +1274,11 @@ def main() -> int:
     _assert_repo_access(repo)
     _assert_actions_secret_access(repo)
     print(f"Using repository: {repo}")
+    previous_source = _existing_dashboard_source(repo)
     source = _resolve_source(args, interactive)
+    full_backfill = False
+    if interactive and previous_source == source:
+        full_backfill = _prompt_full_backfill_choice(source)
 
     distance_unit, elevation_unit = _resolve_units(args, interactive)
 
@@ -1378,7 +1455,11 @@ def main() -> int:
         )
 
         dispatch_started_at = datetime.now(timezone.utc)
-        dispatched, dispatch_detail = _try_dispatch_sync(repo, source)
+        dispatched, dispatch_detail = _try_dispatch_sync(
+            repo,
+            source,
+            full_backfill=full_backfill,
+        )
         _add_step(
             steps,
             name="Run first sync workflow",
