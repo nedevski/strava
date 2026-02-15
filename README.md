@@ -4,7 +4,7 @@ Turn your Strava and Garmin activities into GitHub-style contribution heatmaps.
 Automatically generates a free, interactive dashboard updated daily on GitHub Pages.  
 **No coding required.**  
 
-- View the Interactive [Activity Dashboard](https://nedevski.github.io/strava/)
+- View the Interactive [Activity Dashboard](https://strava.nedevski.com/)
 - Once setup is complete, this dashboard link will automatically update to your own GitHub Pages URL.
 
 
