@@ -238,6 +238,10 @@
         box-shadow: var(--shadow);
         flex-direction: column;
         gap: var(--space-2);
+        max-height: min(420px, calc(100dvh - 180px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
       }
 
       .filter-menu.open .filter-menu-options {
@@ -606,6 +610,7 @@
 
       .year-card .heatmap-area {
         justify-self: start;
+        padding-right: var(--year-grid-pad-right, 0px);
       }
 
       .year-card .card-stats.side-stats-column .card-stat-label,
@@ -1426,6 +1431,7 @@
         :root {
           --labeled-card-padding-top: 10px;
           --labeled-card-title-gap: 4px;
+          --year-grid-pad-right: var(--space-7);
           --side-stat-pad-block: var(--space-2);
           --side-stat-pad-inline: var(--space-3);
           --side-stat-label-size: clamp(8px, 1.6vw, 9px);
@@ -1458,12 +1464,15 @@
           font-size: 17px;
         }
         .header-top {
-          grid-template-columns: var(--mobile-filter-width) var(--mobile-action-width);
+          grid-template-columns: minmax(0, 1fr) var(--mobile-action-width);
           grid-template-rows: auto auto auto auto auto auto;
           justify-items: stretch;
           justify-content: center;
           row-gap: var(--mobile-header-row-gap);
           column-gap: var(--mobile-control-col-gap);
+          width: 100%;
+          max-width: calc(var(--mobile-filter-width) + var(--mobile-control-col-gap) + var(--mobile-action-width));
+          margin-inline: auto;
         }
         h1 {
           grid-column: 1 / -1;
@@ -1543,7 +1552,7 @@
           display: block;
           grid-column: 1 / -1;
           grid-row: 5;
-          width: calc(var(--mobile-filter-width) + var(--mobile-control-col-gap) + var(--mobile-action-width));
+          width: 100%;
           max-width: 100%;
           justify-self: center;
         }
@@ -1650,6 +1659,8 @@
           --label-gap-rotated: 8px;
           --side-stat-label-size: clamp(8px, 2vw, 9px);
           --side-stat-value-size: clamp(10px, 2.8vw, 12px);
+          --side-stat-card-width-min: 112px;
+          --side-stat-pad-inline: var(--space-2);
         }
         .labeled-card-title {
           font-size: clamp(8px, 2.6vw, 11px);
