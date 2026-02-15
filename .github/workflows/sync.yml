@@ -107,6 +107,7 @@ jobs:
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
           DASHBOARD_DISTANCE_UNIT: ${{ vars.DASHBOARD_DISTANCE_UNIT }}
           DASHBOARD_ELEVATION_UNIT: ${{ vars.DASHBOARD_ELEVATION_UNIT }}
+          DASHBOARD_WEEK_START: ${{ vars.DASHBOARD_WEEK_START }}
         run: |
           cat <<CONFIG > config.local.yaml
           source: "${SYNC_SOURCE}"
@@ -141,6 +142,11 @@ jobs:
             if [[ -n "${DASHBOARD_ELEVATION_UNIT}" ]]; then
               echo "  elevation: \"${DASHBOARD_ELEVATION_UNIT}\"" >> config.local.yaml
             fi
+          fi
+
+          if [[ -n "${DASHBOARD_WEEK_START}" ]]; then
+            echo "heatmaps:" >> config.local.yaml
+            echo "  week_start: \"${DASHBOARD_WEEK_START}\"" >> config.local.yaml
           fi
 
           echo "Generated config.local.yaml for source=${SYNC_SOURCE}"
@@ -196,6 +202,7 @@ jobs:
 
       - name: Run pipeline
         env:
+          DASHBOARD_REPO: ${{ vars.DASHBOARD_REPO }}
           GITHUB_TOKEN: ${{ github.token }}
           UPDATE_README_LINK: ${{ github.event_name != 'workflow_dispatch' || inputs.update_readme_link }}
         run: |
@@ -208,6 +215,38 @@ jobs:
             args+=(--update-readme-link)
           fi
           python scripts/run_pipeline.py "${args[@]}"
+
+      - name: Stamp repository in site data
+        env:
+          DASHBOARD_REPO: ${{ vars.DASHBOARD_REPO }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import re
+
+          repo_re = re.compile(r"^[^/\s]+/[^/\s]+$")
+          configured_repo = os.environ.get("DASHBOARD_REPO", "").strip()
+          default_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+          repo = configured_repo if repo_re.match(configured_repo or "") else default_repo
+
+          path = "site/data.json"
+          try:
+            with open(path, "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+          except Exception:
+            payload = {}
+          if not isinstance(payload, dict):
+            payload = {}
+
+          if repo_re.match(repo or ""):
+            payload["repo"] = repo
+
+          with open(path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=True, indent=2, sort_keys=True)
+            handle.write("\n")
+          PY
 
       - name: Rotate Strava refresh secret (optional)
         env:

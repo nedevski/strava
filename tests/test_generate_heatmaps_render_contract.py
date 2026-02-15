@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 import tempfile
 import types
@@ -84,6 +85,34 @@ class GenerateHeatmapsRenderContractTests(unittest.TestCase):
         self.assertIn('data-date="2025-01-01"', svg)
         self.assertIn("<title>2025-01-01\n2 workouts\nDistance: 1.00 mi\nDuration: 1h 0m\nElevation: 328 ft</title>", svg)
 
+    def test_svg_for_year_supports_monday_week_start(self) -> None:
+        entries = {
+            "2025-01-05": {
+                "count": 1,
+                "distance": 0,
+                "moving_time": 600,
+                "elevation_gain": 0,
+                "activity_ids": ["a"],
+            }
+        }
+        svg = generate_heatmaps._svg_for_year(
+            2025,
+            entries,
+            {"distance": "mi", "elevation": "ft"},
+            generate_heatmaps.DEFAULT_COLORS,
+            week_start="monday",
+        )
+
+        day_labels = re.findall(
+            r'text-anchor="end" dominant-baseline="middle">([A-Za-z]{3})</text>',
+            svg,
+        )
+        self.assertEqual(day_labels, ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+        self.assertRegex(
+            svg,
+            r'<rect x="0" y="84" width="12" height="12" rx="3" ry="3" fill="[^"]+" data-date="2025-01-05">',
+        )
+
     def test_load_activities_filters_invalid_rows_and_parses_hour(self) -> None:
         rows = [
             {
@@ -128,6 +157,16 @@ class GenerateHeatmapsRenderContractTests(unittest.TestCase):
 
         self.assertEqual(captured["payload"].get("repo"), "owner/repo")
 
+    def test_repo_slug_prefers_dashboard_repo_env(self) -> None:
+        with mock.patch.dict(
+            "os.environ",
+            {"DASHBOARD_REPO": "owner/custom-fork", "GITHUB_REPOSITORY": "owner/git-sweaty"},
+            clear=False,
+        ):
+            repo_slug = generate_heatmaps._repo_slug_from_git()
+
+        self.assertEqual(repo_slug, "owner/custom-fork")
+
     def test_generate_includes_strava_profile_url_when_configured(self) -> None:
         captured = {}
 
@@ -152,6 +191,28 @@ class GenerateHeatmapsRenderContractTests(unittest.TestCase):
             captured["payload"].get("strava_profile_url"),
             "https://www.strava.com/athletes/12345",
         )
+
+    def test_generate_includes_week_start_when_configured(self) -> None:
+        captured = {}
+
+        with (
+            mock.patch(
+                "generate_heatmaps.load_config",
+                return_value={
+                    "sync": {},
+                    "activities": {},
+                    "source": "strava",
+                    "heatmaps": {"week_start": "monday"},
+                },
+            ),
+            mock.patch("generate_heatmaps.os.path.exists", return_value=False),
+            mock.patch("generate_heatmaps._load_activities", return_value=[]),
+            mock.patch("generate_heatmaps._repo_slug_from_git", return_value=None),
+            mock.patch("generate_heatmaps._write_site_data", side_effect=lambda payload: captured.setdefault("payload", payload)),
+        ):
+            generate_heatmaps.generate(write_svgs=False)
+
+        self.assertEqual(captured["payload"].get("week_start"), "monday")
 
 
 if __name__ == "__main__":

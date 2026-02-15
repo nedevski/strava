@@ -5,6 +5,7 @@ const TYPE_ACCENT_OVERRIDES = {
 };
 const FALLBACK_VAPORWAVE = ["#f15bb5", "#fee440", "#00bbf9", "#00f5d4", "#9b5de5", "#fb5607", "#ffbe0b", "#72efdd"];
 const STAT_PLACEHOLDER = "- - -";
+const CREATOR_REPO_SLUG = "aspain/git-sweaty";
 const TYPE_LABEL_OVERRIDES = {
   HighIntensityIntervalTraining: "HITT",
   Workout: "Other Workout",
@@ -14,6 +15,12 @@ let OTHER_BUCKET = "OtherSports";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEK_START_SUNDAY = "sunday";
+const WEEK_START_MONDAY = "monday";
+const WEEKDAY_LABELS_BY_WEEK_START = Object.freeze({
+  [WEEK_START_SUNDAY]: Object.freeze(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]),
+  [WEEK_START_MONDAY]: Object.freeze(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]),
+});
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const DEFAULT_UNITS = Object.freeze({ distance: "mi", elevation: "ft" });
 const UNIT_SYSTEM_TO_UNITS = Object.freeze({
@@ -40,8 +47,13 @@ const heatmaps = document.getElementById("heatmaps");
 const tooltip = document.getElementById("tooltip");
 const summary = document.getElementById("summary");
 const updated = document.getElementById("updated");
+const headerMeta = document.getElementById("headerMeta");
+const headerLinks = document.querySelector(".header-links");
 const repoLink = document.querySelector(".repo-link");
 const stravaProfileLink = document.querySelector(".strava-profile-link");
+const footerHostedPrefix = document.getElementById("footerHostedPrefix");
+const footerHostedLink = document.getElementById("footerHostedLink");
+const footerPoweredLabel = document.getElementById("footerPoweredLabel");
 const dashboardTitle = document.getElementById("dashboardTitle");
 const isTouch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 const BREAKPOINTS = Object.freeze({
@@ -63,6 +75,14 @@ function normalizeUnits(units) {
   const distance = units?.distance === "km" ? "km" : "mi";
   const elevation = units?.elevation === "m" ? "m" : "ft";
   return { distance, elevation };
+}
+
+function normalizeWeekStart(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "monday" || normalized === "mon") {
+    return WEEK_START_MONDAY;
+  }
+  return WEEK_START_SUNDAY;
 }
 
 function getUnitSystemFromUnits(units) {
@@ -190,6 +210,20 @@ function resolveGitHubRepo(loc, fallbackRepo) {
   return inferGitHubRepoFromLocation(loc) || parseGitHubRepo(fallbackRepo);
 }
 
+function normalizeRepoSlug(value) {
+  const parsed = parseGitHubRepo(value);
+  if (!parsed) return "";
+  return `${parsed.owner}/${parsed.repo}`.toLowerCase();
+}
+
+function shouldHideHostedFooter(repoCandidate) {
+  return normalizeRepoSlug(repoCandidate) === CREATOR_REPO_SLUG;
+}
+
+function footerPoweredLabelText(repoCandidate) {
+  return shouldHideHostedFooter(repoCandidate) ? "Powered" : "powered";
+}
+
 function isGitHubHostedLocation(loc) {
   const host = String(loc?.hostname || "").toLowerCase();
   return Boolean(host) && (host === "github.com" || host.endsWith(".github.io"));
@@ -244,6 +278,15 @@ function resolveHeaderRepoLink(loc, fallbackRepo) {
   return null;
 }
 
+function resolveFooterHostedLink(loc, fallbackRepo) {
+  const inferred = resolveGitHubRepo(loc, fallbackRepo);
+  if (!inferred) return null;
+  return {
+    href: `https://github.com/${inferred.owner}/${inferred.repo}`,
+    text: `${inferred.owner}/${inferred.repo}`,
+  };
+}
+
 function syncRepoLink(fallbackRepo) {
   if (!repoLink) return;
   const resolved = resolveHeaderRepoLink(
@@ -253,6 +296,49 @@ function syncRepoLink(fallbackRepo) {
   if (!resolved) return;
   repoLink.href = resolved.href;
   repoLink.textContent = resolved.text;
+}
+
+function syncFooterHostedLink(fallbackRepo) {
+  if (!footerHostedLink) return;
+  const footerFallbackRepo = fallbackRepo
+    || repoLink?.getAttribute("href")
+    || repoLink?.textContent
+    || footerHostedLink.getAttribute("href")
+    || footerHostedLink.textContent;
+  const resolved = resolveFooterHostedLink(
+    window.location,
+    footerFallbackRepo,
+  );
+  if (resolved) {
+    footerHostedLink.href = resolved.href;
+    footerHostedLink.textContent = resolved.text;
+  }
+  const footerRepoCandidate = resolved?.text || resolved?.href || footerFallbackRepo;
+  if (footerHostedPrefix) {
+    footerHostedPrefix.hidden = shouldHideHostedFooter(footerRepoCandidate);
+  }
+  if (footerPoweredLabel) {
+    footerPoweredLabel.textContent = footerPoweredLabelText(footerRepoCandidate);
+  }
+}
+
+function syncDesktopHeaderLinkPlacement() {
+  if (!repoLink || !headerMeta || !headerLinks) return;
+  const shouldStackRepoOnLeft = Boolean(
+    isDesktopLikeViewport() && stravaProfileLink && !stravaProfileLink.hidden,
+  );
+
+  if (shouldStackRepoOnLeft) {
+    if (repoLink.parentElement !== headerMeta) {
+      const insertBeforeNode = updated && updated.parentElement === headerMeta ? updated : null;
+      headerMeta.insertBefore(repoLink, insertBeforeNode);
+    }
+    return;
+  }
+
+  if (repoLink.parentElement !== headerLinks) {
+    headerLinks.insertBefore(repoLink, headerLinks.firstChild);
+  }
 }
 
 function parseStravaProfileUrl(value) {
@@ -290,11 +376,13 @@ function syncStravaProfileLink(profileUrl) {
   const parsed = parseStravaProfileUrl(profileUrl);
   if (!parsed) {
     stravaProfileLink.hidden = true;
+    syncDesktopHeaderLinkPlacement();
     return;
   }
   stravaProfileLink.href = parsed.href;
   stravaProfileLink.textContent = parsed.label;
   stravaProfileLink.hidden = false;
+  syncDesktopHeaderLinkPlacement();
 }
 
 function providerDisplayName(source) {
@@ -616,6 +704,46 @@ function weekOfYear(date) {
   const yearStart = new Date(date.getFullYear(), 0, 1);
   const start = sundayOnOrBefore(yearStart);
   return weekIndexFromSundayStart(date, start) + 1;
+}
+
+function utcDateFromParts(year, monthIndex, dayOfMonth) {
+  return new Date(Date.UTC(year, monthIndex, dayOfMonth));
+}
+
+function formatUtcDateKey(date) {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function utcDayNumber(date) {
+  return Math.floor(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) / MS_PER_DAY);
+}
+
+function weekdayRowFromStart(utcDayIndex, weekStart) {
+  if (normalizeWeekStart(weekStart) === WEEK_START_MONDAY) {
+    return (utcDayIndex + 6) % 7;
+  }
+  return utcDayIndex;
+}
+
+function weekStartOnOrBeforeUtc(date, weekStart) {
+  const offset = weekdayRowFromStart(date.getUTCDay(), weekStart);
+  const result = new Date(date.getTime());
+  result.setUTCDate(result.getUTCDate() - offset);
+  return result;
+}
+
+function weekEndOnOrAfterUtc(date, weekStart) {
+  const offset = weekdayRowFromStart(date.getUTCDay(), weekStart);
+  const result = new Date(date.getTime());
+  result.setUTCDate(result.getUTCDate() + (6 - offset));
+  return result;
+}
+
+function weekIndexFromWeekStartUtc(date, start) {
+  return Math.floor((utcDayNumber(date) - utcDayNumber(start)) / 7);
 }
 
 function hexToRgb(hex) {
@@ -1229,6 +1357,8 @@ function buildSummary(
     });
   });
 
+  visibleTypeCardsList.sort((a, b) => (typeTotals[b]?.count || 0) - (typeTotals[a]?.count || 0));
+
   const cards = [
     { title: "Total Activities", value: totals.count.toLocaleString() },
   ];
@@ -1359,6 +1489,8 @@ function buildSummary(
 function buildHeatmapArea(aggregates, year, units, colors, type, layout, options = {}) {
   const heatmapArea = document.createElement("div");
   heatmapArea.className = "heatmap-area";
+  const weekStart = normalizeWeekStart(options.weekStart);
+  const dayLabels = WEEKDAY_LABELS_BY_WEEK_START[weekStart] || DAYS;
   const metricHeatmapKey = typeof options.metricHeatmapKey === "string"
     ? options.metricHeatmapKey
     : null;
@@ -1378,7 +1510,7 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
   dayCol.className = "day-col";
   dayCol.style.paddingTop = `${layout.gridPadTop}px`;
   dayCol.style.gap = `${layout.gap}px`;
-  DAYS.forEach((label) => {
+  dayLabels.forEach((label) => {
     const dayLabel = document.createElement("div");
     dayLabel.className = "day-label";
     dayLabel.textContent = label;
@@ -1388,14 +1520,14 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
   });
   heatmapArea.appendChild(dayCol);
 
-  const yearStart = new Date(year, 0, 1);
-  const yearEnd = new Date(year, 11, 31);
-  const start = sundayOnOrBefore(yearStart);
-  const end = saturdayOnOrAfter(yearEnd);
+  const yearStart = utcDateFromParts(year, 0, 1);
+  const yearEnd = utcDateFromParts(year, 11, 31);
+  const start = weekStartOnOrBeforeUtc(yearStart, weekStart);
+  const end = weekEndOnOrAfterUtc(yearEnd, weekStart);
 
   for (let month = 0; month < 12; month += 1) {
-    const monthStart = new Date(year, month, 1);
-    const weekIndex = weekIndexFromSundayStart(monthStart, start);
+    const monthStart = utcDateFromParts(year, month, 1);
+    const weekIndex = weekIndexFromWeekStartUtc(monthStart, start);
     const monthLabel = document.createElement("div");
     monthLabel.className = "month-label";
     monthLabel.textContent = MONTHS[month];
@@ -1406,9 +1538,9 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
   const grid = document.createElement("div");
   grid.className = "grid";
 
-  for (let day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
-    const dateStr = formatLocalDateKey(day);
-    const inYear = day.getFullYear() === year;
+  for (let day = new Date(start.getTime()); day <= end; day.setUTCDate(day.getUTCDate() + 1)) {
+    const dateStr = formatUtcDateKey(day);
+    const inYear = day.getUTCFullYear() === year;
     const entry = (aggregates && aggregates[dateStr]) || {
       count: 0,
       distance: 0,
@@ -1417,8 +1549,8 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
       activity_ids: [],
     };
 
-    const weekIndex = weekIndexFromSundayStart(day, start);
-    const row = day.getDay(); // Sunday=0
+    const weekIndex = weekIndexFromWeekStartUtc(day, start);
+    const row = weekdayRowFromStart(day.getUTCDay(), weekStart);
 
     const cell = document.createElement("div");
     cell.className = "cell";
@@ -2468,7 +2600,9 @@ function renderLoadError(error) {
 
 async function init() {
   syncRepoLink();
+  syncFooterHostedLink();
   syncStravaProfileLink();
+  syncDesktopHeaderLinkPlacement();
   const resp = await fetch("data.json");
   if (!resp.ok) {
     throw new Error(`Failed to load data.json (${resp.status})`);
@@ -2478,6 +2612,12 @@ async function init() {
     throw new Error("Invalid dashboard data format.");
   }
   syncRepoLink(
+    payload.repo
+    || payload.repo_slug
+    || payload.repo_url
+    || payload.repository,
+  );
+  syncFooterHostedLink(
     payload.repo
     || payload.repo_slug
     || payload.repo_url
@@ -2515,6 +2655,7 @@ async function init() {
     ...payload.types.map((type) => ({ value: type, label: displayType(type) })),
   ];
   const setupUnits = normalizeUnits(payload.units || DEFAULT_UNITS);
+  const setupWeekStart = normalizeWeekStart(payload.week_start || payload.weekStart);
 
   function renderButtons(container, options, onSelect) {
     if (!container) return;
@@ -3259,6 +3400,7 @@ async function init() {
               {
                 colorForEntry,
                 metricHeatmapColor: frequencyCardColor,
+                weekStart: setupWeekStart,
                 cardMetricYear: year,
                 initialMetricKey: getInitialYearMetricKey(year),
                 onYearMetricStateChange,
@@ -3312,6 +3454,7 @@ async function init() {
             const card = total > 0
               ? buildCard(type, year, aggregates, currentUnits, {
                 metricHeatmapColor: getColors(type)[4],
+                weekStart: setupWeekStart,
                 cardMetricYear: year,
                 initialMetricKey: getInitialYearMetricKey(year),
                 onYearMetricStateChange,
@@ -3576,6 +3719,7 @@ async function init() {
       }
       lastViewportWidth = width;
       lastIsNarrowLayout = isNarrowLayout;
+      syncDesktopHeaderLinkPlacement();
       resetPersistentSideStatSizing();
       update();
     }, 150);

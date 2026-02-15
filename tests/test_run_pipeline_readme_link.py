@@ -55,6 +55,14 @@ class _FakeUrlOpenResponse:
 
 
 class RunPipelineReadmeLinkTests(unittest.TestCase):
+    def test_repo_slug_prefers_dashboard_repo_env(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {"DASHBOARD_REPO": "owner/custom-fork", "GITHUB_REPOSITORY": "owner/git-sweaty"},
+            clear=False,
+        ):
+            self.assertEqual(run_pipeline._repo_slug_from_git(), "owner/custom-fork")
+
     def test_dashboard_url_from_pages_api_prefers_cname(self) -> None:
         with (
             mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token-abc"}, clear=False),

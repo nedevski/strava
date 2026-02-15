@@ -57,9 +57,10 @@ def _write_aggregates(payload):
 
 
 def _repo_slug_from_git() -> Optional[str]:
-    env_slug = os.environ.get("GITHUB_REPOSITORY", "").strip()
-    if env_slug and "/" in env_slug:
-        return env_slug
+    for env_name in ("DASHBOARD_REPO", "GITHUB_REPOSITORY"):
+        env_slug = os.environ.get(env_name, "").strip()
+        if env_slug and "/" in env_slug:
+            return env_slug
 
     try:
         result = subprocess.run(

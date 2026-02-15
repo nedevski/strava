@@ -65,6 +65,7 @@ jobs:
               "distance": "mi",
               "elevation": "ft"
             },
+            "week_start": "sunday",
             "years": []
           }
           JSON

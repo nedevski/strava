@@ -121,6 +121,15 @@
         row-gap: var(--space-3);
       }
 
+      .header-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0;
+        grid-column: 1;
+        grid-row: 1;
+      }
+
       .header-links {
         display: flex;
         flex-direction: column;
@@ -155,9 +164,7 @@
         font-size: 12px;
         margin: 0;
         white-space: nowrap;
-        justify-self: start;
-        grid-column: 1;
-        grid-row: 1;
+        text-align: left;
       }
 
       .controls {
@@ -1247,6 +1254,26 @@
         transform: none;
       }
 
+      .dashboard-footer {
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+        width: min(100%, var(--dashboard-content-rail-width));
+        margin: 0 auto;
+      }
+
+      .dashboard-footer-link {
+        color: var(--muted);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+        pointer-events: auto;
+      }
+
+      .dashboard-footer-link:hover {
+        color: var(--accent);
+      }
+
       @media (min-width: 721px) {
         .labeled-card-row .card {
           margin: 0;
@@ -1293,7 +1320,7 @@
           column-gap: var(--desktop-control-col-gap);
         }
 
-        .updated {
+        .header-meta {
           grid-column: 1;
           grid-row: 1;
           justify-self: start;
@@ -1597,15 +1624,19 @@
           font-size: 12px;
           white-space: nowrap;
         }
-        .updated {
+        .header-meta {
           grid-column: 1 / -1;
-          grid-row: 1;
+          grid-row: 6;
+          text-align: center;
+          align-items: center;
           justify-self: center;
+        }
+        .updated {
           text-align: center;
         }
         .header-links {
           grid-column: 1 / -1;
-          grid-row: 6;
+          grid-row: 1;
           flex-direction: row;
           align-items: center;
           justify-content: center;
@@ -1720,7 +1751,9 @@
     <div class="app">
       <header>
         <div class="header-top">
-          <div id="updated" class="updated"></div>
+          <div class="header-meta" id="headerMeta">
+            <div id="updated" class="updated"></div>
+          </div>
           <h1 id="dashboardTitle">Activity Heatmaps</h1>
           <div class="button-row" id="typeButtons"></div>
           <div class="button-row" id="yearButtons"></div>
@@ -1760,6 +1793,14 @@
 
       <div id="summary" class="summary"></div>
       <div id="heatmaps" class="heatmaps"></div>
+      <footer class="dashboard-footer">
+        <span id="footerHostedPrefix">
+          Hosted at
+          <a class="dashboard-footer-link" id="footerHostedLink" href="https://github.com">github.com</a>,
+        </span>
+        <span id="footerPoweredLabel">powered</span> by
+        <a class="dashboard-footer-link" id="footerPoweredLink" href="https://github.com/aspain/git-sweaty">aspain/git-sweaty</a>.
+      </footer>
     </div>
 
     <div id="tooltip" class="tooltip"></div>

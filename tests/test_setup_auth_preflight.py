@@ -190,6 +190,50 @@ class SetupAuthDispatchTests(unittest.TestCase):
         args = Namespace(source=None)
         self.assertEqual(setup_auth._resolve_source(args, interactive=False, previous_source=None), "strava")
 
+    def test_existing_dashboard_week_start_normalizes_supported_values(self) -> None:
+        with mock.patch(
+            "setup_auth._get_variable",
+            return_value=" Monday ",
+        ):
+            value = setup_auth._existing_dashboard_week_start("owner/repo")
+        self.assertEqual(value, "monday")
+
+    def test_existing_dashboard_week_start_ignores_unknown_values(self) -> None:
+        with mock.patch(
+            "setup_auth._get_variable",
+            return_value="something-else",
+        ):
+            value = setup_auth._existing_dashboard_week_start("owner/repo")
+        self.assertIsNone(value)
+
+    def test_resolve_week_start_non_interactive_prefers_existing_value(self) -> None:
+        args = Namespace(week_start=None)
+        with mock.patch("setup_auth._existing_dashboard_week_start", return_value="monday"):
+            value = setup_auth._resolve_week_start(args, interactive=False, repo="owner/repo")
+        self.assertEqual(value, "monday")
+
+    def test_resolve_week_start_non_interactive_defaults_to_sunday(self) -> None:
+        args = Namespace(week_start=None)
+        with mock.patch("setup_auth._existing_dashboard_week_start", return_value=None):
+            value = setup_auth._resolve_week_start(args, interactive=False, repo="owner/repo")
+        self.assertEqual(value, "sunday")
+
+    def test_resolve_week_start_uses_explicit_argument(self) -> None:
+        args = Namespace(week_start="monday")
+        with mock.patch("setup_auth._existing_dashboard_week_start", return_value="sunday"):
+            value = setup_auth._resolve_week_start(args, interactive=False, repo="owner/repo")
+        self.assertEqual(value, "monday")
+
+    def test_resolve_week_start_interactive_defaults_to_sunday_option(self) -> None:
+        args = Namespace(week_start=None)
+        with (
+            mock.patch("setup_auth._existing_dashboard_week_start", return_value="monday"),
+            mock.patch("setup_auth._prompt_week_start", return_value="sunday") as prompt_mock,
+        ):
+            value = setup_auth._resolve_week_start(args, interactive=True, repo="owner/repo")
+        self.assertEqual(value, "sunday")
+        prompt_mock.assert_called_once_with("sunday")
+
     def test_normalize_strava_profile_url_accepts_strava_host(self) -> None:
         value = setup_auth._normalize_strava_profile_url("www.strava.com/athletes/123")
         self.assertEqual(value, "https://www.strava.com/athletes/123")
@@ -259,6 +303,39 @@ class SetupAuthDispatchTests(unittest.TestCase):
 
         self.assertTrue(ok)
         self.assertIn("custom domain set to strava.nedevski.com", detail)
+
+    def test_try_clear_pages_custom_domain_clears_and_verifies(self) -> None:
+        responses = [
+            _completed_process(returncode=0, stdout="strava.nedevski.com\n"),
+            _completed_process(returncode=0),
+            _completed_process(returncode=0, stdout="null\n"),
+        ]
+        with mock.patch("setup_auth._run", side_effect=responses):
+            ok, detail = setup_auth._try_clear_pages_custom_domain("owner/repo")
+
+        self.assertTrue(ok)
+        self.assertIn("custom domain cleared", detail.lower())
+
+    def test_prompt_custom_pages_domain_can_request_clear_existing_domain(self) -> None:
+        with (
+            mock.patch("setup_auth._get_pages_custom_domain", return_value="strava.example.com"),
+            mock.patch("setup_auth._prompt_choice", side_effect=["no", "yes"]),
+        ):
+            requested, domain = setup_auth._prompt_custom_pages_domain("owner/repo")
+        self.assertTrue(requested)
+        self.assertIsNone(domain)
+
+    def test_prompt_custom_pages_domain_defaults_to_no(self) -> None:
+        with (
+            mock.patch("setup_auth._get_pages_custom_domain", return_value="strava.example.com"),
+            mock.patch("setup_auth._prompt_choice", side_effect=["no", "no"]) as prompt_mock,
+        ):
+            setup_auth._prompt_custom_pages_domain("owner/repo")
+
+        self.assertGreaterEqual(len(prompt_mock.call_args_list), 1)
+        first_call = prompt_mock.call_args_list[0]
+        self.assertEqual(first_call.args[0], "Use a custom dashboard domain? [y/n] (default: n): ")
+        self.assertEqual(first_call.kwargs["default"], "n")
 
     def test_resolve_strava_profile_url_non_interactive_uses_existing_variable(self) -> None:
         args = Namespace(strava_profile_url=None)
@@ -381,11 +458,13 @@ class SetupAuthMainFlowTests(unittest.TestCase):
             store_garmin_password_secrets=False,
             repo=None,
             unit_system=None,
+            week_start=None,
             port=setup_auth.DEFAULT_PORT,
             timeout=setup_auth.DEFAULT_TIMEOUT,
             scope="read,activity:read_all",
             strava_profile_url=None,
             custom_domain=None,
+            clear_custom_domain=False,
             no_browser=True,
             no_auto_github=False,
             no_watch=True,
@@ -393,6 +472,7 @@ class SetupAuthMainFlowTests(unittest.TestCase):
 
     def _run_main_for_source(self, previous_source: str, source: str, full_backfill_prompt_result: bool) -> tuple[
         int,
+        mock.MagicMock,
         mock.MagicMock,
         mock.MagicMock,
     ]:
@@ -405,11 +485,12 @@ class SetupAuthMainFlowTests(unittest.TestCase):
             mock.patch("setup_auth._resolve_repo_slug", return_value="owner/repo"),
             mock.patch("setup_auth._assert_repo_access"),
             mock.patch("setup_auth._assert_actions_secret_access"),
-            mock.patch("setup_auth._resolve_custom_pages_domain", return_value=None),
+            mock.patch("setup_auth._resolve_custom_pages_domain", return_value=(False, None)),
             mock.patch("setup_auth._existing_dashboard_source", return_value=previous_source),
             mock.patch("setup_auth._resolve_source", return_value=source),
             mock.patch("setup_auth._prompt_full_backfill_choice", return_value=full_backfill_prompt_result) as prompt_mock,
             mock.patch("setup_auth._resolve_units", return_value=("mi", "ft")),
+            mock.patch("setup_auth._resolve_week_start", return_value="sunday") as week_start_mock,
             mock.patch(
                 "setup_auth._resolve_garmin_auth_values",
                 return_value=("garmin-token-b64", "user@example.com", "password"),
@@ -422,10 +503,10 @@ class SetupAuthMainFlowTests(unittest.TestCase):
             mock.patch("setup_auth._try_dispatch_sync", return_value=(True, "ok")) as dispatch_mock,
             mock.patch("setup_auth._find_latest_workflow_run", return_value=(123, "https://example.test/run/123")),
         ):
-            return setup_auth.main(), prompt_mock, dispatch_mock
+            return setup_auth.main(), prompt_mock, dispatch_mock, week_start_mock
 
     def test_main_prompts_full_backfill_on_same_source_rerun(self) -> None:
-        result, prompt_mock, dispatch_mock = self._run_main_for_source(
+        result, prompt_mock, dispatch_mock, week_start_mock = self._run_main_for_source(
             previous_source="garmin",
             source="garmin",
             full_backfill_prompt_result=True,
@@ -433,9 +514,10 @@ class SetupAuthMainFlowTests(unittest.TestCase):
         self.assertEqual(result, 0)
         prompt_mock.assert_called_once_with("garmin")
         dispatch_mock.assert_called_once_with("owner/repo", "garmin", full_backfill=True)
+        week_start_mock.assert_called_once_with(mock.ANY, True, "owner/repo")
 
     def test_main_skips_full_backfill_prompt_when_switching_source(self) -> None:
-        result, prompt_mock, dispatch_mock = self._run_main_for_source(
+        result, prompt_mock, dispatch_mock, week_start_mock = self._run_main_for_source(
             previous_source="strava",
             source="garmin",
             full_backfill_prompt_result=True,
@@ -443,6 +525,7 @@ class SetupAuthMainFlowTests(unittest.TestCase):
         self.assertEqual(result, 0)
         prompt_mock.assert_not_called()
         dispatch_mock.assert_called_once_with("owner/repo", "garmin", full_backfill=False)
+        week_start_mock.assert_called_once_with(mock.ANY, True, "owner/repo")
 
     def test_main_sets_optional_strava_profile_variable(self) -> None:
         args = self._default_args()
@@ -457,11 +540,14 @@ class SetupAuthMainFlowTests(unittest.TestCase):
             stack.enter_context(mock.patch("setup_auth._resolve_repo_slug", return_value="owner/repo"))
             stack.enter_context(mock.patch("setup_auth._assert_repo_access"))
             stack.enter_context(mock.patch("setup_auth._assert_actions_secret_access"))
-            stack.enter_context(mock.patch("setup_auth._resolve_custom_pages_domain", return_value=None))
+            stack.enter_context(mock.patch("setup_auth._resolve_custom_pages_domain", return_value=(False, None)))
             stack.enter_context(mock.patch("setup_auth._existing_dashboard_source", return_value="strava"))
             stack.enter_context(mock.patch("setup_auth._resolve_source", return_value="strava"))
             stack.enter_context(mock.patch("setup_auth._prompt_full_backfill_choice", return_value=False))
             stack.enter_context(mock.patch("setup_auth._resolve_units", return_value=("mi", "ft")))
+            resolve_week_start_mock = stack.enter_context(
+                mock.patch("setup_auth._resolve_week_start", return_value="sunday")
+            )
             stack.enter_context(mock.patch("setup_auth._authorize_and_get_code", return_value="auth-code"))
             stack.enter_context(
                 mock.patch(
@@ -491,6 +577,7 @@ class SetupAuthMainFlowTests(unittest.TestCase):
             result = setup_auth.main()
 
         self.assertEqual(result, 0)
+        resolve_week_start_mock.assert_called_once_with(args, True, "owner/repo")
         resolve_profile_mock.assert_called_once_with(
             args,
             True,
@@ -501,6 +588,22 @@ class SetupAuthMainFlowTests(unittest.TestCase):
             mock.call(
                 "DASHBOARD_STRAVA_PROFILE_URL",
                 "https://www.strava.com/athletes/123",
+                "owner/repo",
+            ),
+            set_variable_mock.mock_calls,
+        )
+        self.assertIn(
+            mock.call(
+                "DASHBOARD_REPO",
+                "owner/repo",
+                "owner/repo",
+            ),
+            set_variable_mock.mock_calls,
+        )
+        self.assertIn(
+            mock.call(
+                "DASHBOARD_WEEK_START",
+                "sunday",
                 "owner/repo",
             ),
             set_variable_mock.mock_calls,
@@ -520,12 +623,13 @@ class SetupAuthMainFlowTests(unittest.TestCase):
             stack.enter_context(mock.patch("setup_auth._assert_repo_access"))
             stack.enter_context(mock.patch("setup_auth._assert_actions_secret_access"))
             stack.enter_context(
-                mock.patch("setup_auth._resolve_custom_pages_domain", return_value="strava.nedevski.com")
+                mock.patch("setup_auth._resolve_custom_pages_domain", return_value=(True, "strava.nedevski.com"))
             )
             stack.enter_context(mock.patch("setup_auth._existing_dashboard_source", return_value="strava"))
             stack.enter_context(mock.patch("setup_auth._resolve_source", return_value="strava"))
             stack.enter_context(mock.patch("setup_auth._prompt_full_backfill_choice", return_value=False))
             stack.enter_context(mock.patch("setup_auth._resolve_units", return_value=("mi", "ft")))
+            stack.enter_context(mock.patch("setup_auth._resolve_week_start", return_value="sunday"))
             stack.enter_context(mock.patch("setup_auth._authorize_and_get_code", return_value="auth-code"))
             stack.enter_context(
                 mock.patch(
@@ -543,6 +647,7 @@ class SetupAuthMainFlowTests(unittest.TestCase):
             set_domain_mock = stack.enter_context(
                 mock.patch("setup_auth._try_set_pages_custom_domain", return_value=(True, "ok"))
             )
+            stack.enter_context(mock.patch("setup_auth._try_clear_pages_custom_domain", return_value=(True, "ok")))
             stack.enter_context(mock.patch("setup_auth._try_dispatch_sync", return_value=(True, "ok")))
             stack.enter_context(
                 mock.patch(
@@ -554,6 +659,57 @@ class SetupAuthMainFlowTests(unittest.TestCase):
 
         self.assertEqual(result, 0)
         set_domain_mock.assert_called_once_with("owner/repo", "strava.nedevski.com")
+
+    def test_main_clears_custom_pages_domain_when_requested(self) -> None:
+        args = self._default_args()
+        args.client_id = "client-id"
+        args.client_secret = "client-secret"
+
+        with ExitStack() as stack:
+            stack.enter_context(mock.patch("setup_auth.parse_args", return_value=args))
+            stack.enter_context(mock.patch("setup_auth._bootstrap_env_and_reexec"))
+            stack.enter_context(mock.patch("setup_auth._isatty", return_value=True))
+            stack.enter_context(mock.patch("setup_auth._assert_gh_ready"))
+            stack.enter_context(mock.patch("setup_auth._resolve_repo_slug", return_value="owner/repo"))
+            stack.enter_context(mock.patch("setup_auth._assert_repo_access"))
+            stack.enter_context(mock.patch("setup_auth._assert_actions_secret_access"))
+            stack.enter_context(
+                mock.patch("setup_auth._resolve_custom_pages_domain", return_value=(True, None))
+            )
+            stack.enter_context(mock.patch("setup_auth._existing_dashboard_source", return_value="strava"))
+            stack.enter_context(mock.patch("setup_auth._resolve_source", return_value="strava"))
+            stack.enter_context(mock.patch("setup_auth._prompt_full_backfill_choice", return_value=False))
+            stack.enter_context(mock.patch("setup_auth._resolve_units", return_value=("mi", "ft")))
+            stack.enter_context(mock.patch("setup_auth._resolve_week_start", return_value="sunday"))
+            stack.enter_context(mock.patch("setup_auth._authorize_and_get_code", return_value="auth-code"))
+            stack.enter_context(
+                mock.patch(
+                    "setup_auth._exchange_code_for_tokens",
+                    return_value={"refresh_token": "refresh-token", "athlete": {}},
+                )
+            )
+            stack.enter_context(mock.patch("setup_auth._set_secret"))
+            stack.enter_context(mock.patch("setup_auth._try_set_strava_secret_update_token", return_value=(True, "ok")))
+            stack.enter_context(mock.patch("setup_auth._resolve_strava_profile_url", return_value=""))
+            stack.enter_context(mock.patch("setup_auth._set_variable"))
+            stack.enter_context(mock.patch("setup_auth._try_enable_actions_permissions", return_value=(True, "ok")))
+            stack.enter_context(mock.patch("setup_auth._try_enable_workflows", return_value=(True, "ok")))
+            stack.enter_context(mock.patch("setup_auth._try_configure_pages", return_value=(True, "ok")))
+            stack.enter_context(mock.patch("setup_auth._try_set_pages_custom_domain", return_value=(True, "ok")))
+            clear_domain_mock = stack.enter_context(
+                mock.patch("setup_auth._try_clear_pages_custom_domain", return_value=(True, "ok"))
+            )
+            stack.enter_context(mock.patch("setup_auth._try_dispatch_sync", return_value=(True, "ok")))
+            stack.enter_context(
+                mock.patch(
+                    "setup_auth._find_latest_workflow_run",
+                    return_value=(123, "https://example.test/run/123"),
+                )
+            )
+            result = setup_auth.main()
+
+        self.assertEqual(result, 0)
+        clear_domain_mock.assert_called_once_with("owner/repo")
 
 
 if __name__ == "__main__":

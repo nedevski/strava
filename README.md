@@ -12,46 +12,20 @@ Automatically generates a free, interactive dashboard updated daily on GitHub Pa
 
 ## Quick Start
 
-### Run the setup script
-
-#### Option A (single command bootstrap)
+### Run:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/aspain/git-sweaty/main/scripts/bootstrap.sh)
 ```
 
-This command will guide you through:
-- `gh auth login` (if needed)
-- choosing setup mode:
-  - `1` local mode (fork + clone + local setup)
-  - `2` online mode (no local clone; GitHub/terminal setup only)
-- forking (including optional custom fork name) and cloning for local mode
-- running interactive setup
-
-#### Option B (manual clone + local bootstrap script)
-
-1. Fork this repo: [Fork this repository](../../fork)
-2. Clone your fork and enter it:
-
-   ```bash
-   git clone https://github.com/<your-username>/<repo-name>.git
-   cd <repo-name>
-   ```
-3. Run bootstrap:
-
-   ```bash
-   ./scripts/bootstrap.sh
-   ```
-
-#### For both options:
-
-Follow the terminal prompts to choose a source and unit preference:
-- `strava` - terminal will link to [Strava API application](https://www.strava.com/settings/api).
-   - Create an application first and set **Authorization Callback Domain** to `localhost`.
-   - The prompt will then ask for `Client ID` and `Client Secret`, and if you'd like to place your Strava profile link on the dashboard.
-- `garmin` - terminal prompts for Garmin email/password
+You will be prompted for:
+- setup mode:
+  - `1` local mode: setup script will create the fork, clone the repo, and complete the rest of the setup.
+  - `2` online mode (default): no local clone; setup script will configure a fork or an existing writable repo
+- optional GitHub Pages custom domain (for example `strava.example.com`)
+- source (`strava` or `garmin`)
 - unit preference (`US` or `Metric`)
-- optional custom dashboard domain (for example `strava.example.com`), which setup will apply to GitHub Pages automatically
+- heatmap week start (`Sunday` or `Monday`)
 
 The setup may take several minutes to complete when run for the first time. If any automation step fails, the script prints steps to remedy the failed step.  
 Once the script succeeds, it will provide the URL for your dashboard.
@@ -101,6 +75,7 @@ Activity type behavior:
 Display + rate-limit settings:
 - `units.distance` (`mi` or `km`)
 - `units.elevation` (`ft` or `m`)
+- `heatmaps.week_start` (`sunday` or `monday`)
 - `rate_limits.*` (Strava API pacing caps used by sync; ignored for Garmin)
 
 ## Notes

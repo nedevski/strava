@@ -95,15 +95,15 @@ prompt_setup_mode() {
   printf '%s\n' "  2) Online mode (no local clone; configure GitHub directly)" >&2
 
   while true; do
-    read -r -p "Select option [1/2] (default: 1): " choice || return 1
+    read -r -p "Select option [1/2] (default: 2): " choice || return 1
     choice="$(trim_whitespace "$choice")"
     choice="$(printf '%s' "$choice" | tr '[:upper:]' '[:lower:]')"
     case "$choice" in
-      ""|1|local|local\ mode)
+      1|local|local\ mode)
         printf '%s\n' "local"
         return 0
         ;;
-      2|online|online\ mode)
+      ""|2|online|online\ mode)
         printf '%s\n' "online"
         return 0
         ;;
@@ -143,21 +143,67 @@ is_valid_repo_slug() {
   [[ "$slug" =~ ^[^/[:space:]]+/[^/[:space:]]+$ ]]
 }
 
+list_writable_repos_for_user() {
+  local login="$1"
+  gh repo list "$login" \
+    --limit 200 \
+    --json nameWithOwner,viewerPermission \
+    --jq '.[] | select(.viewerPermission == "ADMIN" or .viewerPermission == "MAINTAIN" or .viewerPermission == "WRITE") | .nameWithOwner' \
+    2>/dev/null \
+    || true
+}
+
 prompt_repo_slug() {
   local default_repo="${1:-}"
-  local prompt answer
+  local login="${2:-}"
+  local prompt answer selected
+  local -a suggestions=()
+  local index raw_choice default_choice
+
+  if [[ -n "$login" ]]; then
+    while IFS= read -r selected; do
+      selected="$(trim_whitespace "$selected")"
+      [[ -n "$selected" ]] || continue
+      suggestions+=("$selected")
+    done < <(list_writable_repos_for_user "$login")
+  fi
+
+  if (( ${#suggestions[@]} > 0 )); then
+    printf '\n' >&2
+    printf '%s\n' "Detected writable repositories for ${login}:" >&2
+    for index in "${!suggestions[@]}"; do
+      printf '  %d) %s\n' "$((index + 1))" "${suggestions[$index]}" >&2
+    done
+    printf '%s\n' "You can select by number or enter OWNER/REPO manually." >&2
+  fi
+
   prompt="Repository to configure (OWNER/REPO)"
+  default_choice=""
   if [[ -n "$default_repo" ]]; then
     prompt="${prompt} (default: ${default_repo})"
+    default_choice="$default_repo"
+  elif (( ${#suggestions[@]} > 0 )); then
+    default_choice="${suggestions[0]}"
+    prompt="${prompt} (default: ${default_choice})"
   fi
   prompt="${prompt}: "
 
   while true; do
     read -r -p "$prompt" answer || return 1
     answer="$(trim_whitespace "$answer")"
+    if [[ "$answer" =~ ^[0-9]+$ ]] && (( ${#suggestions[@]} > 0 )); then
+      raw_choice="$answer"
+      if (( raw_choice >= 1 && raw_choice <= ${#suggestions[@]} )); then
+        answer="${suggestions[$((raw_choice - 1))]}"
+      else
+        printf '%s\n' "Selection out of range. Choose one of the listed numbers." >&2
+        continue
+      fi
+    fi
+
     if [[ -z "$answer" ]]; then
-      if [[ -n "$default_repo" ]]; then
-        answer="$default_repo"
+      if [[ -n "$default_choice" ]]; then
+        answer="$default_choice"
       else
         printf '%s\n' "A repository slug is required." >&2
         continue
@@ -171,6 +217,14 @@ prompt_repo_slug() {
 
     if ! gh repo view "$answer" >/dev/null 2>&1; then
       warn "Repository is not accessible with current gh auth: $answer"
+      continue
+    fi
+
+    local can_push
+    can_push="$(gh api "repos/${answer}" --jq '.permissions.push' 2>/dev/null || true)"
+    if [[ "$can_push" != "true" ]]; then
+      warn "Current gh account does not have write access to: $answer"
+      warn "Fork is required unless you choose a writable target repository."
       continue
     fi
 
@@ -546,11 +600,12 @@ run_online_setup() {
   login="$(gh api user --jq .login 2>/dev/null || true)"
   [[ -n "$login" ]] || fail "Unable to resolve GitHub username from current gh auth session."
 
-  if prompt_yes_no "Fork the repo to your GitHub account first?" "Y"; then
+  if prompt_yes_no "Create/use a fork in your GitHub account first? (recommended unless you already have a writable target repo)" "Y"; then
     ensure_fork_exists "$upstream_repo"
     target_repo="$BOOTSTRAP_SELECTED_FORK_REPO"
   else
-    target_repo="$(prompt_repo_slug "$(detect_existing_fork_repo "$upstream_repo" "$login" || true)")"
+    info "Using non-fork mode: target repository must be writable by the current gh account."
+    target_repo="$(prompt_repo_slug "$(detect_existing_fork_repo "$upstream_repo" "$login" || true)" "$login")"
   fi
 
   default_branch="$(gh api "repos/${upstream_repo}" --jq .default_branch 2>/dev/null || true)"
@@ -676,15 +731,12 @@ main() {
     return 0
   fi
 
-  if prompt_yes_no "Fork the repo to your GitHub account first?" "Y"; then
-    fork_and_clone "$upstream_repo" "$repo_dir"
-  else
-    if ! prompt_yes_no "Clone upstream directly (without forking)?" "Y"; then
-      info "No repository action selected. Exiting."
-      return 0
-    fi
-    clone_upstream "$upstream_repo" "$repo_dir"
+  if ! prompt_yes_no "Proceed with fork-based local setup? (for non-fork targets, choose online mode)" "Y"; then
+    info "Skipped local setup."
+    info "Use option 2 (online mode) if you want a non-fork target repository."
+    return 0
   fi
+  fork_and_clone "$upstream_repo" "$repo_dir"
 
   if [[ -n "$BOOTSTRAP_SELECTED_REPO_DIR" ]]; then
     repo_dir="$BOOTSTRAP_SELECTED_REPO_DIR"
