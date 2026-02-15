@@ -36,7 +36,8 @@ expand_path() {
 
 is_compatible_clone() {
   local repo_dir="$1"
-  [[ -d "$repo_dir/.git" && -f "$repo_dir/$SETUP_SCRIPT_REL" ]]
+  [[ -e "$repo_dir/.git" && -f "$repo_dir/$SETUP_SCRIPT_REL" ]] || return 1
+  git -C "$repo_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1
 }
 
 prompt_yes_no() {
@@ -173,7 +174,7 @@ fork_and_clone() {
   fi
   gh repo view "$fork_repo" >/dev/null 2>&1 || fail "Fork is not accessible: $fork_repo"
 
-  if [[ -d "$repo_dir/.git" && -f "$repo_dir/$SETUP_SCRIPT_REL" ]]; then
+  if is_compatible_clone "$repo_dir"; then
     info "Using existing clone at $repo_dir"
   else
     ensure_repo_dir_ready "$repo_dir"
@@ -188,7 +189,7 @@ clone_upstream() {
   local upstream_repo="$1"
   local repo_dir="$2"
 
-  if [[ -d "$repo_dir/.git" && -f "$repo_dir/$SETUP_SCRIPT_REL" ]]; then
+  if is_compatible_clone "$repo_dir"; then
     info "Using existing clone at $repo_dir"
     return 0
   fi

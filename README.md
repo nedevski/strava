@@ -14,8 +14,6 @@ Automatically generates a free, interactive dashboard updated daily on GitHub Pa
 
 ### Run the setup script
 
-Use either option below. Both run the same setup logic.
-
 #### Option A (single command bootstrap)
 
 ```bash
@@ -42,8 +40,12 @@ This command will guide you through:
    ./scripts/bootstrap.sh
    ```
 
+#### For both options:
+
 Follow the terminal prompts to choose a source and unit preference:
-- `strava` - terminal will link to [Strava API application](https://www.strava.com/settings/api). Create an application first and set **Authorization Callback Domain** to `localhost`. The prompt will then ask for `Client ID` and `Client Secret`
+- `strava` - terminal will link to [Strava API application](https://www.strava.com/settings/api).
+   - Create an application first and set **Authorization Callback Domain** to `localhost`.
+   - The prompt will then ask for `Client ID` and `Client Secret`, and if you'd like to place your Strava profile link on the dashboard.
 - `garmin` - terminal prompts for Garmin email/password
 - unit preference (`US` or `Metric`)
 
@@ -59,7 +61,7 @@ Once the script succeeds, it will provide the URL for your dashboard.
 
 ### Switching Sources Later
 
-You can switch between `strava` and `garmin` any time, even after initial setup.
+You can switch between `strava` and `garmin` any time.
 
 - Re-run `./scripts/bootstrap.sh` and choose a different source.
 - If you re-run setup and choose the same source, setup asks whether to force a one-time full backfill for that run.

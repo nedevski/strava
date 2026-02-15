@@ -53,11 +53,12 @@ jobs:
             echo "No ${branch} branch yet; writing empty site/data.json."
           fi
           mkdir -p site
-          cat <<'JSON' > site/data.json
+          cat <<JSON > site/data.json
           {
             "activities": [],
             "aggregates": {},
             "generated_at": null,
+            "repo": "${GITHUB_REPOSITORY}",
             "type_meta": {},
             "types": [],
             "units": {
@@ -67,6 +68,29 @@ jobs:
             "years": []
           }
           JSON
+
+      - name: Stamp repository in site data
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+
+          path = "site/data.json"
+          repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+          try:
+            with open(path, "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+          except Exception:
+            payload = {}
+          if not isinstance(payload, dict):
+            payload = {}
+          if repo and "/" in repo:
+            payload["repo"] = repo
+          with open(path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=True, indent=2, sort_keys=True)
+            handle.write("\n")
+          PY
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

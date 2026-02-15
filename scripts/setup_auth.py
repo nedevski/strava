@@ -49,6 +49,7 @@ if sys.version_info < (3, 9):
 
 TOKEN_ENDPOINT = "https://www.strava.com/oauth/token"
 AUTHORIZE_ENDPOINT = "https://www.strava.com/oauth/authorize"
+STRAVA_ATHLETE_ENDPOINT = "https://www.strava.com/api/v3/athlete"
 CALLBACK_PATH = "/exchange_token"
 DEFAULT_PORT = 8765
 DEFAULT_TIMEOUT = 180
@@ -73,6 +74,7 @@ REPO_SSH_RE = re.compile(
     re.IGNORECASE,
 )
 REPO_SLUG_RE = re.compile(r"^(?P<owner>[^/\s]+)/(?P<repo>[^/\s]+)$")
+STRAVA_HOST_RE = re.compile(r"(^|\.)strava\.com$", re.IGNORECASE)
 
 
 @dataclass
@@ -484,6 +486,17 @@ def _set_variable(name: str, value: str, repo: str) -> None:
         raise RuntimeError(f"Failed to set GitHub variable {name}{detail}")
 
 
+def _clear_variable(name: str, repo: str) -> None:
+    result = _run(["gh", "variable", "delete", name, "--repo", repo], check=False)
+    if result.returncode == 0:
+        return
+    error_text = (result.stderr or "").lower()
+    if "not found" in error_text or "http 404" in error_text:
+        return
+    detail = _first_stderr_line(result.stderr)
+    raise RuntimeError(f"Failed to clear GitHub variable {name}: {detail}")
+
+
 def _get_variable(name: str, repo: str) -> Optional[str]:
     result = _run(["gh", "variable", "get", name, "--repo", repo], check=False)
     if result.returncode != 0:
@@ -661,6 +674,121 @@ def _resolve_source(
     if previous_source in {"strava", "garmin"}:
         return previous_source
     return DEFAULT_SOURCE
+
+
+def _normalize_strava_profile_url(value: Optional[str]) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    if not re.match(r"^https?://", raw, flags=re.IGNORECASE):
+        raw = f"https://{raw.lstrip('/')}"
+    parsed = urllib.parse.urlparse(raw)
+    host = str(parsed.hostname or "").lower()
+    if not host or not STRAVA_HOST_RE.search(host):
+        raise ValueError("Strava profile URL must use a strava.com hostname.")
+    path = str(parsed.path or "").strip()
+    if not path or path == "/":
+        raise ValueError("Strava profile URL must include a profile path (for example /athletes/<id>).")
+
+    normalized_path = path.rstrip("/") or "/"
+    normalized = urllib.parse.urlunparse(
+        (
+            parsed.scheme or "https",
+            parsed.netloc,
+            normalized_path,
+            "",
+            parsed.query,
+            "",
+        )
+    )
+    return normalized
+
+
+def _strava_profile_url_from_athlete(athlete: object) -> str:
+    if not isinstance(athlete, dict):
+        return ""
+    athlete_id = athlete.get("id")
+    if athlete_id is None:
+        return ""
+    athlete_id_text = str(athlete_id).strip()
+    if not athlete_id_text:
+        return ""
+    return f"https://www.strava.com/athletes/{athlete_id_text}"
+
+
+def _fetch_strava_athlete(access_token: str) -> dict:
+    token = str(access_token or "").strip()
+    if not token:
+        return {}
+    request = urllib.request.Request(
+        STRAVA_ATHLETE_ENDPOINT,
+        method="GET",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            body = response.read().decode("utf-8")
+    except Exception:
+        return {}
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _detect_strava_profile_url(tokens: dict) -> str:
+    token_payload = tokens if isinstance(tokens, dict) else {}
+    detected = _strava_profile_url_from_athlete(token_payload.get("athlete"))
+    if detected:
+        return detected
+
+    access_token = str(token_payload.get("access_token") or "").strip()
+    if not access_token:
+        return ""
+    athlete = _fetch_strava_athlete(access_token)
+    return _strava_profile_url_from_athlete(athlete)
+
+
+def _prompt_use_strava_profile_link(default_enabled: bool) -> bool:
+    print("\nOptional: show your Strava profile link in the dashboard header.")
+    default_choice = "y" if default_enabled else "n"
+    choice = _prompt_choice(
+        "Show Strava profile link next to the repo link? [y/n]: ",
+        {"y": "yes", "yes": "yes", "n": "no", "no": "no"},
+        default=default_choice,
+        invalid_message="Please enter 'y' or 'n'.",
+    )
+    return choice == "yes"
+
+
+def _resolve_strava_profile_url(
+    args: argparse.Namespace,
+    interactive: bool,
+    repo: str,
+    tokens: Optional[dict] = None,
+) -> str:
+    explicit = getattr(args, "strava_profile_url", None)
+    if explicit is not None:
+        explicit_text = str(explicit).strip()
+        if not explicit_text:
+            return ""
+        return _normalize_strava_profile_url(explicit_text)
+
+    detected = _normalize_strava_profile_url(_detect_strava_profile_url(tokens or {}))
+
+    existing_raw = _get_variable("DASHBOARD_STRAVA_PROFILE_URL", repo)
+    try:
+        existing_value = _normalize_strava_profile_url(existing_raw)
+    except ValueError:
+        existing_value = ""
+
+    candidate = detected or existing_value
+    if interactive:
+        enabled = _prompt_use_strava_profile_link(default_enabled=bool(candidate))
+        return candidate if enabled else ""
+
+    return candidate
 
 
 def _iter_exception_chain(exc: Exception) -> Iterator[BaseException]:
@@ -1234,6 +1362,11 @@ def parse_args() -> argparse.Namespace:
         help="Strava OAuth scopes.",
     )
     parser.add_argument(
+        "--strava-profile-url",
+        default=None,
+        help="Optional Strava profile URL override shown in the dashboard header (auto-detected by default).",
+    )
+    parser.add_argument(
         "--no-browser",
         action="store_true",
         help="Do not auto-open browser; print auth URL only.",
@@ -1291,6 +1424,7 @@ def main() -> int:
     print("\nUpdating repository secrets via gh...")
     configured_secret_names: list[str] = []
     athlete_name = ""
+    strava_profile_url = ""
     strava_rotation_secret_ok: Optional[bool] = None
     strava_rotation_secret_detail = ""
     if source == "strava":
@@ -1339,6 +1473,7 @@ def main() -> int:
         athlete_name = " ".join(
             [str(athlete.get("firstname", "")).strip(), str(athlete.get("lastname", "")).strip()]
         ).strip()
+        strava_profile_url = _resolve_strava_profile_url(args, interactive, repo, tokens=tokens)
     elif source == "garmin":
         token_store_b64, garmin_email, garmin_password = _resolve_garmin_auth_values(args, interactive)
         if token_store_b64:
@@ -1378,13 +1513,19 @@ def main() -> int:
 
     variable_errors = []
     print("Updating repository variables via gh...")
-    for name, value in [
+    variable_pairs = [
         ("DASHBOARD_SOURCE", source),
         ("DASHBOARD_DISTANCE_UNIT", distance_unit),
         ("DASHBOARD_ELEVATION_UNIT", elevation_unit),
-    ]:
+    ]
+    if source == "strava":
+        variable_pairs.append(("DASHBOARD_STRAVA_PROFILE_URL", strava_profile_url))
+    for name, value in variable_pairs:
         try:
-            _set_variable(name, value, repo)
+            if name == "DASHBOARD_STRAVA_PROFILE_URL" and not value:
+                _clear_variable(name, repo)
+            else:
+                _set_variable(name, value, repo)
         except RuntimeError as exc:
             variable_errors.append(str(exc))
 
@@ -1397,10 +1538,24 @@ def main() -> int:
             manual_help=(
                 f"Open {variables_settings_url} and set DASHBOARD_SOURCE={source}, "
                 f"DASHBOARD_DISTANCE_UNIT={distance_unit} "
-                f"and DASHBOARD_ELEVATION_UNIT={elevation_unit}."
+                f"and DASHBOARD_ELEVATION_UNIT={elevation_unit}"
+                + (
+                    (
+                        ", DASHBOARD_STRAVA_PROFILE_URL="
+                        f"{strava_profile_url}"
+                    )
+                    if source == "strava" and strava_profile_url
+                    else "."
+                )
+                + ("." if source == "strava" and strava_profile_url else "")
             ),
         )
     else:
+        profile_suffix = (
+            f", DASHBOARD_STRAVA_PROFILE_URL={strava_profile_url}"
+            if source == "strava" and strava_profile_url
+            else ""
+        )
         _add_step(
             steps,
             name="Store dashboard variables",
@@ -1408,7 +1563,8 @@ def main() -> int:
             detail=(
                 "Saved DASHBOARD_SOURCE="
                 f"{source}, DASHBOARD_DISTANCE_UNIT={distance_unit}, "
-                f"DASHBOARD_ELEVATION_UNIT={elevation_unit}."
+                f"DASHBOARD_ELEVATION_UNIT={elevation_unit}"
+                f"{profile_suffix}."
             ),
         )
     print("\nCredentials configured.")
@@ -1418,10 +1574,16 @@ def main() -> int:
     if configured_secret_names:
         print(f"Secrets set: {', '.join(configured_secret_names)}")
     if not variable_errors:
+        profile_suffix = (
+            f", DASHBOARD_STRAVA_PROFILE_URL={strava_profile_url}"
+            if source == "strava" and strava_profile_url
+            else ""
+        )
         print(
             "Variables set: "
             f"DASHBOARD_SOURCE={source}, DASHBOARD_DISTANCE_UNIT={distance_unit}, "
             f"DASHBOARD_ELEVATION_UNIT={elevation_unit}"
+            f"{profile_suffix}"
         )
 
     if args.no_auto_github:

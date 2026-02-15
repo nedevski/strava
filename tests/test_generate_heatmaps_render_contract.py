@@ -114,6 +114,45 @@ class GenerateHeatmapsRenderContractTests(unittest.TestCase):
         self.assertEqual(activities[0]["hour"], 9)
         self.assertIsNone(activities[1]["hour"])
 
+    def test_generate_includes_repo_slug_when_available(self) -> None:
+        captured = {}
+
+        with (
+            mock.patch("generate_heatmaps.load_config", return_value={"sync": {}, "activities": {}, "source": "strava"}),
+            mock.patch("generate_heatmaps.os.path.exists", return_value=False),
+            mock.patch("generate_heatmaps._load_activities", return_value=[]),
+            mock.patch("generate_heatmaps._repo_slug_from_git", return_value="owner/repo"),
+            mock.patch("generate_heatmaps._write_site_data", side_effect=lambda payload: captured.setdefault("payload", payload)),
+        ):
+            generate_heatmaps.generate(write_svgs=False)
+
+        self.assertEqual(captured["payload"].get("repo"), "owner/repo")
+
+    def test_generate_includes_strava_profile_url_when_configured(self) -> None:
+        captured = {}
+
+        with (
+            mock.patch(
+                "generate_heatmaps.load_config",
+                return_value={
+                    "sync": {},
+                    "activities": {},
+                    "source": "strava",
+                    "strava": {"profile_url": "https://www.strava.com/athletes/12345"},
+                },
+            ),
+            mock.patch("generate_heatmaps.os.path.exists", return_value=False),
+            mock.patch("generate_heatmaps._load_activities", return_value=[]),
+            mock.patch("generate_heatmaps._repo_slug_from_git", return_value=None),
+            mock.patch("generate_heatmaps._write_site_data", side_effect=lambda payload: captured.setdefault("payload", payload)),
+        ):
+            generate_heatmaps.generate(write_svgs=False)
+
+        self.assertEqual(
+            captured["payload"].get("strava_profile_url"),
+            "https://www.strava.com/athletes/12345",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

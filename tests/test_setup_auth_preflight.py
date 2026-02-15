@@ -3,6 +3,7 @@ import subprocess
 import sys
 import unittest
 from argparse import Namespace
+from contextlib import ExitStack
 from unittest import mock
 
 
@@ -121,6 +122,58 @@ class SetupAuthDispatchTests(unittest.TestCase):
         args = Namespace(source=None)
         self.assertEqual(setup_auth._resolve_source(args, interactive=False, previous_source=None), "strava")
 
+    def test_normalize_strava_profile_url_accepts_strava_host(self) -> None:
+        value = setup_auth._normalize_strava_profile_url("www.strava.com/athletes/123")
+        self.assertEqual(value, "https://www.strava.com/athletes/123")
+
+    def test_normalize_strava_profile_url_rejects_non_strava_host(self) -> None:
+        with self.assertRaises(ValueError):
+            setup_auth._normalize_strava_profile_url("https://example.com/athletes/123")
+
+    def test_detect_strava_profile_url_from_token_payload(self) -> None:
+        value = setup_auth._detect_strava_profile_url({"athlete": {"id": 42}})
+        self.assertEqual(value, "https://www.strava.com/athletes/42")
+
+    def test_resolve_strava_profile_url_non_interactive_uses_existing_variable(self) -> None:
+        args = Namespace(strava_profile_url=None)
+        with (
+            mock.patch("setup_auth._detect_strava_profile_url", return_value=""),
+            mock.patch("setup_auth._get_variable", return_value="https://www.strava.com/athletes/456"),
+        ):
+            value = setup_auth._resolve_strava_profile_url(args, interactive=False, repo="owner/repo")
+        self.assertEqual(value, "https://www.strava.com/athletes/456")
+
+    def test_resolve_strava_profile_url_interactive_uses_detected_when_enabled(self) -> None:
+        args = Namespace(strava_profile_url=None)
+        with (
+            mock.patch("setup_auth._get_variable", return_value=""),
+            mock.patch("setup_auth._detect_strava_profile_url", return_value="https://www.strava.com/athletes/789"),
+            mock.patch("setup_auth._prompt_use_strava_profile_link", return_value=True) as prompt_mock,
+        ):
+            value = setup_auth._resolve_strava_profile_url(
+                args,
+                interactive=True,
+                repo="owner/repo",
+                tokens={"athlete": {"id": 789}},
+            )
+        self.assertEqual(value, "https://www.strava.com/athletes/789")
+        prompt_mock.assert_called_once_with(default_enabled=True)
+
+    def test_clear_variable_ignores_not_found(self) -> None:
+        with mock.patch(
+            "setup_auth._run",
+            return_value=_completed_process(returncode=1, stderr="HTTP 404: Not Found"),
+        ):
+            setup_auth._clear_variable("DASHBOARD_STRAVA_PROFILE_URL", "owner/repo")
+
+    def test_clear_variable_raises_on_other_errors(self) -> None:
+        with mock.patch(
+            "setup_auth._run",
+            return_value=_completed_process(returncode=1, stderr="HTTP 403: Forbidden"),
+        ):
+            with self.assertRaises(RuntimeError):
+                setup_auth._clear_variable("DASHBOARD_STRAVA_PROFILE_URL", "owner/repo")
+
     def test_try_dispatch_sync_uses_full_backfill_when_supported(self) -> None:
         with mock.patch(
             "setup_auth._run",
@@ -205,6 +258,7 @@ class SetupAuthMainFlowTests(unittest.TestCase):
             port=setup_auth.DEFAULT_PORT,
             timeout=setup_auth.DEFAULT_TIMEOUT,
             scope="read,activity:read_all",
+            strava_profile_url=None,
             no_browser=True,
             no_auto_github=False,
             no_watch=True,
@@ -261,6 +315,67 @@ class SetupAuthMainFlowTests(unittest.TestCase):
         self.assertEqual(result, 0)
         prompt_mock.assert_not_called()
         dispatch_mock.assert_called_once_with("owner/repo", "garmin", full_backfill=False)
+
+    def test_main_sets_optional_strava_profile_variable(self) -> None:
+        args = self._default_args()
+        args.client_id = "client-id"
+        args.client_secret = "client-secret"
+
+        with ExitStack() as stack:
+            stack.enter_context(mock.patch("setup_auth.parse_args", return_value=args))
+            stack.enter_context(mock.patch("setup_auth._bootstrap_env_and_reexec"))
+            stack.enter_context(mock.patch("setup_auth._isatty", return_value=True))
+            stack.enter_context(mock.patch("setup_auth._assert_gh_ready"))
+            stack.enter_context(mock.patch("setup_auth._resolve_repo_slug", return_value="owner/repo"))
+            stack.enter_context(mock.patch("setup_auth._assert_repo_access"))
+            stack.enter_context(mock.patch("setup_auth._assert_actions_secret_access"))
+            stack.enter_context(mock.patch("setup_auth._existing_dashboard_source", return_value="strava"))
+            stack.enter_context(mock.patch("setup_auth._resolve_source", return_value="strava"))
+            stack.enter_context(mock.patch("setup_auth._prompt_full_backfill_choice", return_value=False))
+            stack.enter_context(mock.patch("setup_auth._resolve_units", return_value=("mi", "ft")))
+            stack.enter_context(mock.patch("setup_auth._authorize_and_get_code", return_value="auth-code"))
+            stack.enter_context(
+                mock.patch(
+                    "setup_auth._exchange_code_for_tokens",
+                    return_value={"refresh_token": "refresh-token", "athlete": {}},
+                )
+            )
+            stack.enter_context(mock.patch("setup_auth._set_secret"))
+            stack.enter_context(mock.patch("setup_auth._try_set_strava_secret_update_token", return_value=(True, "ok")))
+            resolve_profile_mock = stack.enter_context(
+                mock.patch(
+                    "setup_auth._resolve_strava_profile_url",
+                    return_value="https://www.strava.com/athletes/123",
+                )
+            )
+            set_variable_mock = stack.enter_context(mock.patch("setup_auth._set_variable"))
+            stack.enter_context(mock.patch("setup_auth._try_enable_actions_permissions", return_value=(True, "ok")))
+            stack.enter_context(mock.patch("setup_auth._try_enable_workflows", return_value=(True, "ok")))
+            stack.enter_context(mock.patch("setup_auth._try_configure_pages", return_value=(True, "ok")))
+            stack.enter_context(mock.patch("setup_auth._try_dispatch_sync", return_value=(True, "ok")))
+            stack.enter_context(
+                mock.patch(
+                    "setup_auth._find_latest_workflow_run",
+                    return_value=(123, "https://example.test/run/123"),
+                )
+            )
+            result = setup_auth.main()
+
+        self.assertEqual(result, 0)
+        resolve_profile_mock.assert_called_once_with(
+            args,
+            True,
+            "owner/repo",
+            tokens={"refresh_token": "refresh-token", "athlete": {}},
+        )
+        self.assertIn(
+            mock.call(
+                "DASHBOARD_STRAVA_PROFILE_URL",
+                "https://www.strava.com/athletes/123",
+                "owner/repo",
+            ),
+            set_variable_mock.mock_calls,
+        )
 
 
 if __name__ == "__main__":

@@ -16,6 +16,28 @@ yaml_stub = types.ModuleType("yaml")
 yaml_stub.safe_load = lambda *_args, **_kwargs: {}
 sys.modules.setdefault("yaml", yaml_stub)
 
+requests_stub = types.ModuleType("requests")
+
+
+class _RequestException(Exception):
+    pass
+
+
+class _HTTPError(_RequestException):
+    def __init__(self, message: str, response=None):
+        super().__init__(message)
+        self.response = response
+
+
+def _default_request(*_args, **_kwargs):
+    raise NotImplementedError("requests.request stub was not patched")
+
+
+requests_stub.RequestException = _RequestException
+requests_stub.HTTPError = _HTTPError
+requests_stub.request = _default_request
+sys.modules.setdefault("requests", requests_stub)
+
 import run_pipeline  # noqa: E402
 
 

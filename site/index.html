@@ -113,21 +113,30 @@
 
       .header-top {
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         grid-template-rows: auto auto auto auto;
         align-items: center;
         column-gap: var(--space-5);
         row-gap: var(--space-3);
       }
 
-      .repo-link {
+      .header-links {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+        grid-column: 3;
+        grid-row: 1;
+      }
+
+      .header-link {
         color: var(--muted);
         font-size: 12px;
         text-decoration: none;
         white-space: nowrap;
       }
 
-      .repo-link:hover {
+      .header-link:hover {
         color: var(--accent);
       }
 
@@ -359,10 +368,8 @@
         cursor: default;
       }
 
-      .repo-link {
-        justify-self: end;
-        grid-column: 3;
-        grid-row: 1;
+      .header-links[hidden] {
+        display: none;
       }
 
       .button-row {
@@ -370,7 +377,10 @@
         flex-wrap: wrap;
         gap: var(--space-4);
         justify-content: center;
-        grid-column: 2;
+        grid-column: 1 / -1;
+        justify-self: center;
+        width: fit-content;
+        max-width: 100%;
       }
 
       #typeButtons {
@@ -388,7 +398,7 @@
         display: flex;
         flex-wrap: nowrap;
         align-items: center;
-        justify-content: flex-start;
+        justify-content: center;
         gap: var(--space-3);
       }
 
@@ -1263,6 +1273,11 @@
           gap: var(--space-3);
         }
 
+        .units-toggle-button {
+          padding: var(--space-3) var(--space-3);
+          min-width: 54px;
+        }
+
         .summary {
           gap: var(--space-4);
         }
@@ -1391,10 +1406,10 @@
           min-width: 86px;
           justify-self: stretch;
         }
-        .repo-link {
+        .header-links {
           grid-column: 1;
           grid-row: 5;
-          justify-self: center;
+          align-items: center;
         }
         .summary {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1511,8 +1526,8 @@
           <div class="button-row" id="yearButtons"></div>
           <div class="button-row" id="resetAllRow">
             <div class="units-toggle" id="unitsToggle" role="group" aria-label="Units">
-              <button type="button" class="units-toggle-button" id="imperialUnitsButton" aria-pressed="false">Imperial</button>
-              <button type="button" class="units-toggle-button" id="metricUnitsButton" aria-pressed="false">Metric</button>
+              <button type="button" class="units-toggle-button" id="imperialUnitsButton" aria-pressed="false">mi</button>
+              <button type="button" class="units-toggle-button" id="metricUnitsButton" aria-pressed="false">km</button>
             </div>
             <button type="button" class="filter-clear-button" id="resetAllButton" disabled>Reset All</button>
           </div>
@@ -1536,7 +1551,10 @@
               <button type="button" class="filter-clear-button" id="yearClearButton" disabled>Clear</button>
             </div>
           </div>
-          <a class="repo-link" href="https://github.com/aspain/git-sweaty">github.com/aspain/git-sweaty</a>
+          <div class="header-links">
+            <a class="header-link repo-link" href="https://github.com">github.com</a>
+            <a class="header-link strava-profile-link" href="https://www.strava.com/athletes/" hidden>Strava Profile</a>
+          </div>
         </div>
       </header>
 

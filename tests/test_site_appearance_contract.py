@@ -60,6 +60,8 @@ class SiteAppearanceContractTests(unittest.TestCase):
         for element_id in expected_ids:
             self.assertRegex(self.html, rf'id="{re.escape(element_id)}"')
 
+        self.assertIn('class="header-link repo-link"', self.html)
+        self.assertIn('class="header-link strava-profile-link"', self.html)
         self.assertIn('<script src="app.js?v=__APP_VERSION__"></script>', self.html)
 
 

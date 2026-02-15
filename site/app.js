@@ -41,6 +41,7 @@ const tooltip = document.getElementById("tooltip");
 const summary = document.getElementById("summary");
 const updated = document.getElementById("updated");
 const repoLink = document.querySelector(".repo-link");
+const stravaProfileLink = document.querySelector(".strava-profile-link");
 const dashboardTitle = document.getElementById("dashboardTitle");
 const isTouch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 const BREAKPOINTS = Object.freeze({
@@ -136,13 +137,153 @@ function inferGitHubRepoFromLocation(loc) {
   return null;
 }
 
-function syncRepoLink() {
+function parseGitHubRepo(value) {
+  if (value && typeof value === "object") {
+    const owner = String(value.owner || "").trim();
+    const repo = String(value.repo || "").trim().replace(/\.git$/i, "");
+    if (owner && repo) {
+      return { owner, repo };
+    }
+    return null;
+  }
+
+  let raw = String(value || "").trim();
+  if (!raw) return null;
+
+  if (/^git@github\.com:/i.test(raw)) {
+    raw = raw.replace(/^git@github\.com:/i, "");
+  } else if (/^https?:\/\//i.test(raw)) {
+    try {
+      const parsed = new URL(raw);
+      if (String(parsed.hostname || "").toLowerCase() !== "github.com") {
+        return null;
+      }
+      raw = parsed.pathname || "";
+    } catch (_error) {
+      return null;
+    }
+  } else {
+    raw = raw.replace(/^(?:https?:\/\/)?(?:www\.)?github\.com\//i, "");
+  }
+
+  const pathParts = raw
+    .replace(/^\/+|\/+$/g, "")
+    .split("/")
+    .filter(Boolean);
+  if (pathParts.length < 2) return null;
+
+  const owner = String(pathParts[0] || "").trim();
+  const repo = String(pathParts[1] || "").trim().replace(/\.git$/i, "");
+  if (!owner || !repo) return null;
+  return { owner, repo };
+}
+
+function resolveGitHubRepo(loc, fallbackRepo) {
+  return inferGitHubRepoFromLocation(loc) || parseGitHubRepo(fallbackRepo);
+}
+
+function isGitHubHostedLocation(loc) {
+  const host = String(loc?.hostname || "").toLowerCase();
+  return Boolean(host) && (host === "github.com" || host.endsWith(".github.io"));
+}
+
+function customDashboardUrlFromLocation(loc) {
+  const protocol = String(loc?.protocol || "").toLowerCase();
+  const host = String(loc?.host || loc?.hostname || "").trim();
+  if (!host) return "";
+  const pathname = String(loc?.pathname || "/");
+  const search = String(loc?.search || "");
+  if (!protocol || !/^https?:$/.test(protocol)) return "";
+
+  try {
+    const normalized = new URL(`${protocol}//${host}${pathname}${search}`);
+    return normalized.toString();
+  } catch (_error) {
+    return "";
+  }
+}
+
+function customDashboardLabelFromUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    const path = String(parsed.pathname || "").replace(/\/+$/, "");
+    const suffixPath = path && path !== "/" ? path : "";
+    return `${parsed.host}${suffixPath}${parsed.search}`;
+  } catch (_error) {
+    return "";
+  }
+}
+
+function resolveHeaderRepoLink(loc, fallbackRepo) {
+  if (!isGitHubHostedLocation(loc)) {
+    const customUrl = customDashboardUrlFromLocation(loc);
+    if (customUrl) {
+      const customLabel = customDashboardLabelFromUrl(customUrl) || customUrl;
+      return { href: customUrl, text: customLabel };
+    }
+  }
+
+  const inferred = resolveGitHubRepo(loc, fallbackRepo);
+  if (!inferred) return null;
+  return {
+    href: `https://github.com/${inferred.owner}/${inferred.repo}`,
+    text: `${inferred.owner}/${inferred.repo}`,
+  };
+}
+
+function syncRepoLink(fallbackRepo) {
   if (!repoLink) return;
-  const inferred = inferGitHubRepoFromLocation(window.location);
-  if (!inferred) return;
-  const href = `https://github.com/${inferred.owner}/${inferred.repo}`;
-  repoLink.href = href;
-  repoLink.textContent = `${inferred.owner}/${inferred.repo}`;
+  const resolved = resolveHeaderRepoLink(
+    window.location,
+    fallbackRepo || repoLink.getAttribute("href") || repoLink.textContent,
+  );
+  if (!resolved) return;
+  repoLink.href = resolved.href;
+  repoLink.textContent = resolved.text;
+}
+
+function parseStravaProfileUrl(value) {
+  let raw = String(value || "").trim();
+  if (!raw) return null;
+  if (!/^https?:\/\//i.test(raw)) {
+    raw = `https://${raw.replace(/^\/+/, "")}`;
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch (_error) {
+    return null;
+  }
+
+  const host = String(parsed.hostname || "").toLowerCase();
+  if (!(host === "strava.com" || host.endsWith(".strava.com"))) {
+    return null;
+  }
+
+  const path = String(parsed.pathname || "").trim().replace(/\/+$/, "");
+  if (!path || path === "/") {
+    return null;
+  }
+
+  return {
+    href: `${parsed.protocol}//${parsed.host}${path}${parsed.search}`,
+    label: "Strava Profile",
+  };
+}
+
+function syncStravaProfileLink(profileUrl) {
+  if (!stravaProfileLink) return;
+  const parsed = parseStravaProfileUrl(profileUrl);
+  if (!parsed) {
+    stravaProfileLink.hidden = true;
+    return;
+  }
+  stravaProfileLink.href = parsed.href;
+  stravaProfileLink.textContent = parsed.label;
+  stravaProfileLink.hidden = false;
 }
 
 function providerDisplayName(source) {
@@ -2318,6 +2459,7 @@ function renderLoadError(error) {
 
 async function init() {
   syncRepoLink();
+  syncStravaProfileLink();
   const resp = await fetch("data.json");
   if (!resp.ok) {
     throw new Error(`Failed to load data.json (${resp.status})`);
@@ -2326,6 +2468,17 @@ async function init() {
   if (!payload || typeof payload !== "object") {
     throw new Error("Invalid dashboard data format.");
   }
+  syncRepoLink(
+    payload.repo
+    || payload.repo_slug
+    || payload.repo_url
+    || payload.repository,
+  );
+  syncStravaProfileLink(
+    payload.strava_profile_url
+    || payload.stravaProfileUrl
+    || payload.strava_profile,
+  );
   setDashboardTitle(payload.source);
   TYPE_META = payload.type_meta || {};
   OTHER_BUCKET = String(payload.other_bucket || "OtherSports");

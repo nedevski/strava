@@ -123,7 +123,51 @@ exit 0
 
             with open(git_log, "r", encoding="utf-8") as f:
                 git_calls = f.read()
-            self.assertNotIn("clone ", git_calls)
+            self.assertFalse(
+                any(line.startswith("clone ") for line in git_calls.splitlines()),
+                msg=git_calls,
+            )
+
+            with open(py_log, "r", encoding="utf-8") as f:
+                py_calls = f.read()
+            self.assertIn(f"{existing_clone}|scripts/setup_auth.py", py_calls)
+
+    def test_bootstrap_accepts_existing_clone_when_gitdir_is_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fake_bin, git_log, py_log = self._make_fake_bin(tmpdir)
+            run_dir = os.path.join(tmpdir, "runner")
+            existing_clone = os.path.join(tmpdir, "existing-worktree")
+            os.makedirs(run_dir, exist_ok=True)
+            os.makedirs(existing_clone, exist_ok=True)
+            os.makedirs(os.path.join(existing_clone, "scripts"), exist_ok=True)
+            with open(os.path.join(existing_clone, ".git"), "w", encoding="utf-8") as f:
+                f.write("gitdir: /tmp/fake-worktree\n")
+            with open(os.path.join(existing_clone, "scripts", "setup_auth.py"), "w", encoding="utf-8") as f:
+                f.write("# test\n")
+
+            env = os.environ.copy()
+            env["PATH"] = f"{fake_bin}:{env['PATH']}"
+            env["FAKE_GIT_LOG"] = git_log
+            env["FAKE_GH_LOG"] = os.path.join(tmpdir, "gh.log")
+            env["FAKE_PY_LOG"] = py_log
+
+            proc = subprocess.run(
+                ["bash", BOOTSTRAP_PATH],
+                input=f"y\n{existing_clone}\ny\n",
+                text=True,
+                capture_output=True,
+                cwd=run_dir,
+                env=env,
+                check=False,
+            )
+            self.assertEqual(proc.returncode, 0, msg=f"{proc.stdout}\n{proc.stderr}")
+
+            with open(git_log, "r", encoding="utf-8") as f:
+                git_calls = f.read()
+            self.assertFalse(
+                any(line.startswith("clone ") for line in git_calls.splitlines()),
+                msg=git_calls,
+            )
 
             with open(py_log, "r", encoding="utf-8") as f:
                 py_calls = f.read()
@@ -163,7 +207,10 @@ exit 0
                 git_calls = f.read()
             self.assertIn("rev-parse --is-inside-work-tree", git_calls)
             self.assertIn("rev-parse --show-toplevel", git_calls)
-            self.assertNotIn("clone ", git_calls)
+            self.assertFalse(
+                any(line.startswith("clone ") for line in git_calls.splitlines()),
+                msg=git_calls,
+            )
 
             with open(py_log, "r", encoding="utf-8") as f:
                 py_calls = f.read()
