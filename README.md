@@ -22,7 +22,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/aspain/git-sweaty/main/scrip
 
 This command will guide you through:
 - `gh auth login` (if needed)
-- forking and cloning (if not already done)
+- choosing setup mode:
+  - `1` local mode (fork + clone + local setup)
+  - `2` online mode (no local clone; GitHub/terminal setup only)
+- forking (including optional custom fork name) and cloning for local mode
 - running interactive setup
 
 #### Option B (manual clone + local bootstrap script)
@@ -48,6 +51,7 @@ Follow the terminal prompts to choose a source and unit preference:
    - The prompt will then ask for `Client ID` and `Client Secret`, and if you'd like to place your Strava profile link on the dashboard.
 - `garmin` - terminal prompts for Garmin email/password
 - unit preference (`US` or `Metric`)
+- optional custom dashboard domain (for example `strava.example.com`), which setup will apply to GitHub Pages automatically
 
 The setup may take several minutes to complete when run for the first time. If any automation step fails, the script prints steps to remedy the failed step.  
 Once the script succeeds, it will provide the URL for your dashboard.

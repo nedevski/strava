@@ -647,6 +647,144 @@ def _pages_url_from_slug(slug: str) -> str:
     return f"https://{owner}.github.io/{repo}/"
 
 
+def _normalize_dashboard_url(value: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    if not re.match(r"^[a-z][a-z0-9+.-]*://", raw, flags=re.IGNORECASE):
+        raw = f"https://{raw.lstrip('/')}"
+
+    parsed = urllib.parse.urlparse(raw)
+    scheme = str(parsed.scheme or "").lower()
+    if scheme not in {"http", "https"}:
+        return ""
+
+    host = str(parsed.netloc or "").strip()
+    if not host:
+        return ""
+
+    path = str(parsed.path or "/")
+    if not path.startswith("/"):
+        path = f"/{path}"
+    if not path.endswith("/") and not parsed.query:
+        path = f"{path}/"
+
+    return urllib.parse.urlunparse((scheme, host, path, "", parsed.query, ""))
+
+
+def _dashboard_url_from_pages_api(repo: str) -> Optional[str]:
+    result = _run(["gh", "api", f"repos/{repo}/pages"], check=False)
+    if result.returncode != 0:
+        return None
+
+    try:
+        payload = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+
+    custom_url = _normalize_dashboard_url(payload.get("cname", ""))
+    if custom_url:
+        return custom_url
+
+    html_url = _normalize_dashboard_url(payload.get("html_url", ""))
+    if html_url:
+        return html_url
+    return None
+
+
+def _normalize_pages_custom_domain(value: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        raise ValueError("Custom domain cannot be empty.")
+
+    candidate = raw if "://" in raw else f"https://{raw.lstrip('/')}"
+    parsed = urllib.parse.urlparse(candidate)
+    scheme = str(parsed.scheme or "").lower()
+    if scheme not in {"http", "https"}:
+        raise ValueError("Custom domain must use http(s) or be a plain host.")
+
+    host = str(parsed.hostname or "").strip().rstrip(".").lower()
+    if not host:
+        raise ValueError("Custom domain must include a valid host.")
+    if parsed.port is not None:
+        raise ValueError("Custom domain must not include a port.")
+    path = str(parsed.path or "").strip()
+    if path and path not in {"/"}:
+        raise ValueError("Custom domain must be host-only (no path).")
+    if parsed.query or parsed.fragment:
+        raise ValueError("Custom domain must not include query or fragment.")
+    return host
+
+
+def _get_pages_custom_domain(repo: str) -> Optional[str]:
+    result = _run(
+        ["gh", "api", f"repos/{repo}/pages", "--jq", ".cname"],
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    raw = str(result.stdout or "").strip()
+    if not raw or raw.lower() == "null":
+        return None
+    try:
+        return _normalize_pages_custom_domain(raw)
+    except ValueError:
+        return None
+
+
+def _prompt_custom_pages_domain(repo: str) -> Optional[str]:
+    existing = _get_pages_custom_domain(repo)
+
+    print("\nOptional: set a custom dashboard domain (example: strava.example.com).")
+    default_choice = "y" if existing else "n"
+    use_custom = _prompt_choice(
+        "Use a custom dashboard domain? [y/n]: ",
+        {"y": "yes", "yes": "yes", "n": "no", "no": "no"},
+        default=default_choice,
+        invalid_message="Please enter 'y' or 'n'.",
+    )
+    if use_custom != "yes":
+        return None
+
+    while True:
+        if existing:
+            response = input(
+                f"Custom domain host (press Enter to keep '{existing}'): "
+            ).strip()
+            if not response:
+                return existing
+        else:
+            response = input("Custom domain host (for example strava.example.com): ").strip()
+            if not response:
+                print("Please enter a domain host, or choose 'n' in the previous prompt.")
+                continue
+
+        try:
+            return _normalize_pages_custom_domain(response)
+        except ValueError as exc:
+            print(f"Invalid custom domain: {exc}")
+
+
+def _resolve_custom_pages_domain(
+    args: argparse.Namespace,
+    interactive: bool,
+    repo: str,
+) -> Optional[str]:
+    explicit = getattr(args, "custom_domain", None)
+    if explicit is not None:
+        explicit_text = str(explicit).strip()
+        if not explicit_text:
+            return None
+        return _normalize_pages_custom_domain(explicit_text)
+
+    if not interactive:
+        return None
+
+    return _prompt_custom_pages_domain(repo)
+
+
 def _prompt_choice(
     prompt: str,
     choices: dict[str, str],
@@ -1181,6 +1319,40 @@ def _try_configure_pages(repo: str) -> Tuple[bool, str]:
     return False, "Unable to configure GitHub Pages build type automatically."
 
 
+def _try_set_pages_custom_domain(repo: str, domain: str) -> Tuple[bool, str]:
+    normalized = _normalize_pages_custom_domain(domain)
+    current = _get_pages_custom_domain(repo)
+    if current == normalized:
+        return True, f"GitHub Pages custom domain already set to {normalized}."
+
+    attempts = [
+        ["gh", "api", "-X", "PUT", f"repos/{repo}/pages", "-f", f"cname={normalized}", "-f", "build_type=workflow"],
+        ["gh", "api", "-X", "PUT", f"repos/{repo}/pages", "-f", f"cname={normalized}"],
+        ["gh", "api", "-X", "POST", f"repos/{repo}/pages", "-f", f"cname={normalized}", "-f", "build_type=workflow"],
+        ["gh", "api", "-X", "POST", f"repos/{repo}/pages", "-f", f"cname={normalized}"],
+    ]
+    errors = []
+    for cmd in attempts:
+        result = _run(cmd, check=False)
+        if result.returncode == 0:
+            verified = _get_pages_custom_domain(repo)
+            if verified == normalized:
+                return True, f"GitHub Pages custom domain set to {normalized}."
+            return (
+                True,
+                f"Requested custom domain {normalized}; verify DNS and Pages settings if it does not appear yet.",
+            )
+        errors.append(_first_stderr_line(result.stderr))
+
+    final_domain = _get_pages_custom_domain(repo)
+    if final_domain == normalized:
+        return True, f"GitHub Pages custom domain set to {normalized}."
+
+    if errors:
+        return False, "; ".join(list(dict.fromkeys(errors)))
+    return False, f"Unable to set custom domain {normalized} automatically."
+
+
 def _try_dispatch_sync(repo: str, source: str, full_backfill: bool = False) -> Tuple[bool, str]:
     attempts: list[tuple[bool, bool]] = []
     if full_backfill:
@@ -1392,6 +1564,11 @@ def parse_args() -> argparse.Namespace:
         help="Optional Strava profile URL override shown in the dashboard header (auto-detected by default).",
     )
     parser.add_argument(
+        "--custom-domain",
+        default=None,
+        help="Optional custom GitHub Pages domain host (for example strava.example.com).",
+    )
+    parser.add_argument(
         "--no-browser",
         action="store_true",
         help="Do not auto-open browser; print auth URL only.",
@@ -1438,6 +1615,7 @@ def main() -> int:
     _assert_repo_access(repo)
     _assert_actions_secret_access(repo)
     print(f"Using repository: {repo}")
+    custom_pages_domain = None if args.no_auto_github else _resolve_custom_pages_domain(args, interactive, repo)
     previous_source = _existing_dashboard_source(repo)
     source = _resolve_source(args, interactive, previous_source)
     full_backfill = False
@@ -1647,6 +1825,16 @@ def main() -> int:
             manual_help=None if pages_configured else f"Open {pages_url} and set Source to 'GitHub Actions'.",
         )
 
+        if custom_pages_domain:
+            domain_set, domain_detail = _try_set_pages_custom_domain(repo, custom_pages_domain)
+            _add_step(
+                steps,
+                name="GitHub Pages custom domain",
+                status=STATUS_OK if domain_set else STATUS_MANUAL_REQUIRED,
+                detail=domain_detail if domain_set else f"Could not configure automatically: {domain_detail}",
+                manual_help=None if domain_set else f"Open {pages_url} and set Custom domain to {custom_pages_domain}.",
+            )
+
         dispatch_started_at = datetime.now(timezone.utc)
         dispatched, dispatch_detail = _try_dispatch_sync(
             repo,
@@ -1826,7 +2014,7 @@ def main() -> int:
         if step.status == STATUS_MANUAL_REQUIRED and step.manual_help:
             print(f"  Manual: {step.manual_help}")
 
-    dashboard_url = _pages_url_from_slug(repo)
+    dashboard_url = _dashboard_url_from_pages_api(repo) or _pages_url_from_slug(repo)
     has_manual_steps = any(step.status == STATUS_MANUAL_REQUIRED for step in steps)
     if has_manual_steps:
         print("\nSetup completed with manual steps remaining.")
