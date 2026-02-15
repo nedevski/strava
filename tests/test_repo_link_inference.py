@@ -176,7 +176,7 @@ class RepoLinkInferenceTests(unittest.TestCase):
         result = self._resolve_repo("subdomain.example.com", "/")
         self.assertIsNone(result)
 
-    def test_header_link_uses_custom_domain_url(self) -> None:
+    def test_header_link_prefers_repo_when_fallback_available(self) -> None:
         result = self._resolve_header_link(
             "strava.nedevski.com",
             "/",
@@ -186,18 +186,31 @@ class RepoLinkInferenceTests(unittest.TestCase):
         self.assertEqual(
             result,
             {
+                "href": "https://github.com/owner/repo",
+                "text": "owner/repo",
+            },
+        )
+
+    def test_header_link_uses_custom_domain_url_without_repo_fallback(self) -> None:
+        result = self._resolve_header_link(
+            "strava.nedevski.com",
+            "/",
+            protocol="https:",
+        )
+        self.assertEqual(
+            result,
+            {
                 "href": "https://strava.nedevski.com/",
                 "text": "strava.nedevski.com",
             },
         )
 
-    def test_header_link_keeps_custom_path_and_query(self) -> None:
+    def test_header_link_keeps_custom_path_and_query_without_repo_fallback(self) -> None:
         result = self._resolve_header_link(
             "strava.nedevski.com",
             "/dashboard/",
             protocol="https:",
             search="?year=2026",
-            fallback_repo="owner/repo",
         )
         self.assertEqual(
             result,
@@ -207,13 +220,12 @@ class RepoLinkInferenceTests(unittest.TestCase):
             },
         )
 
-    def test_header_link_keeps_custom_port_in_label_and_href(self) -> None:
+    def test_header_link_keeps_custom_port_in_label_and_href_without_repo_fallback(self) -> None:
         result = self._resolve_header_link(
             "localhost",
             "/preview/",
             protocol="http:",
             host="localhost:4173",
-            fallback_repo="owner/repo",
         )
         self.assertEqual(
             result,

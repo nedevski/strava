@@ -91,6 +91,47 @@ repo_name_from_slug() {
   printf '%s\n' "${slug##*/}"
 }
 
+discover_existing_fork_repo() {
+  local login="$1"
+  local upstream_repo="$2"
+
+  gh repo list "$login" \
+    --fork \
+    --limit 1000 \
+    --json nameWithOwner,parent \
+    --jq ".[] | select(.parent.nameWithOwner == \"$upstream_repo\") | .nameWithOwner" \
+    2>/dev/null \
+    | head -n 1 \
+    || true
+}
+
+resolve_fork_repo() {
+  local upstream_repo="$1"
+  local login="$2"
+  local explicit="${GIT_SWEATY_FORK_REPO:-}"
+  local default_fork discovered
+
+  if [[ -n "$explicit" ]]; then
+    gh repo view "$explicit" >/dev/null 2>&1 || fail "Configured fork repo is not accessible: $explicit"
+    printf '%s\n' "$explicit"
+    return 0
+  fi
+
+  default_fork="${login}/$(repo_name_from_slug "$upstream_repo")"
+  if gh repo view "$default_fork" >/dev/null 2>&1; then
+    printf '%s\n' "$default_fork"
+    return 0
+  fi
+
+  discovered="$(discover_existing_fork_repo "$login" "$upstream_repo")"
+  if [[ -n "$discovered" ]] && gh repo view "$discovered" >/dev/null 2>&1; then
+    printf '%s\n' "$discovered"
+    return 0
+  fi
+
+  fail "Unable to find an accessible fork for ${upstream_repo} under ${login}. Set GIT_SWEATY_FORK_REPO=<owner>/<repo> and retry."
+}
+
 detect_local_repo_root() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     return 1
@@ -166,12 +207,12 @@ fork_and_clone() {
 
   login="$(gh api user --jq .login 2>/dev/null || true)"
   [[ -n "$login" ]] || fail "Unable to resolve GitHub username from current gh auth session."
-  fork_repo="${login}/$(repo_name_from_slug "$upstream_repo")"
-
-  info "Ensuring fork exists: $fork_repo"
+  info "Ensuring fork exists for ${login}"
   if ! gh repo fork "$upstream_repo" --clone=false --remote=false >/dev/null 2>&1; then
     warn "Fork creation command did not succeed cleanly. Continuing if fork already exists."
   fi
+  fork_repo="$(resolve_fork_repo "$upstream_repo" "$login")"
+  info "Using fork repository: $fork_repo"
   gh repo view "$fork_repo" >/dev/null 2>&1 || fail "Fork is not accessible: $fork_repo"
 
   if is_compatible_clone "$repo_dir"; then

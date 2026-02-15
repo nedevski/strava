@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: write
+  pages: read
 
 env:
   DASHBOARD_DATA_BRANCH: dashboard-data
@@ -195,6 +196,7 @@ jobs:
 
       - name: Run pipeline
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           UPDATE_README_LINK: ${{ github.event_name != 'workflow_dispatch' || inputs.update_readme_link }}
         run: |
           set -euo pipefail

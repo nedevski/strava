@@ -51,6 +51,14 @@ let pendingAlignmentFrame = null;
 let persistentSideStatCardWidth = 0;
 let persistentSideStatCardMinHeight = 0;
 
+function resetPersistentSideStatSizing() {
+  persistentSideStatCardWidth = 0;
+  persistentSideStatCardMinHeight = 0;
+  if (!heatmaps) return;
+  heatmaps.style.removeProperty("--side-stat-card-width");
+  heatmaps.style.removeProperty("--side-stat-card-min-height");
+}
+
 function normalizeUnits(units) {
   const distance = units?.distance === "km" ? "km" : "mi";
   const elevation = units?.elevation === "m" ? "m" : "ft";
@@ -217,6 +225,14 @@ function customDashboardLabelFromUrl(url) {
 }
 
 function resolveHeaderRepoLink(loc, fallbackRepo) {
+  const inferred = resolveGitHubRepo(loc, fallbackRepo);
+  if (inferred) {
+    return {
+      href: `https://github.com/${inferred.owner}/${inferred.repo}`,
+      text: `${inferred.owner}/${inferred.repo}`,
+    };
+  }
+
   if (!isGitHubHostedLocation(loc)) {
     const customUrl = customDashboardUrlFromLocation(loc);
     if (customUrl) {
@@ -225,12 +241,7 @@ function resolveHeaderRepoLink(loc, fallbackRepo) {
     }
   }
 
-  const inferred = resolveGitHubRepo(loc, fallbackRepo);
-  if (!inferred) return null;
-  return {
-    href: `https://github.com/${inferred.owner}/${inferred.repo}`,
-    text: `${inferred.owner}/${inferred.repo}`,
-  };
+  return null;
 }
 
 function syncRepoLink(fallbackRepo) {
@@ -798,13 +809,6 @@ function displayType(type) {
 
 function summaryTypeTitle(type) {
   return displayType(type);
-}
-
-function formatActivitiesTitle(types) {
-  if (!types || !types.length) {
-    return "Activities";
-  }
-  return `${types.map((type) => displayType(type)).join(" + ")} Activities`;
 }
 
 function pluralizeLabel(label) {
@@ -2976,18 +2980,11 @@ async function init() {
 
   function setMenuLabel(labelEl, text, fallbackText) {
     if (!labelEl) return;
-    if (isNarrowLayoutViewport() && fallbackText && fallbackText !== text) {
+    if (fallbackText && fallbackText !== text) {
       labelEl.textContent = fallbackText;
       return;
     }
     labelEl.textContent = text;
-    if (!fallbackText || fallbackText === text) return;
-    if (!isNarrowLayoutViewport()) return;
-    const menuButton = labelEl.closest(".filter-menu-button");
-    if (!menuButton || menuButton.offsetParent === null) return;
-    if (labelEl.scrollWidth > labelEl.clientWidth) {
-      labelEl.textContent = fallbackText;
-    }
   }
 
   function setMenuOpen(menuEl, buttonEl, isOpen) {
@@ -2995,6 +2992,53 @@ async function init() {
     menuEl.classList.toggle("open", isOpen);
     if (buttonEl) {
       buttonEl.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    }
+  }
+
+  function syncFilterControlState({
+    typeMenuTypes,
+    yearMenuYears,
+    typeMenuSelection,
+    yearMenuSelection,
+    allTypesSelected,
+    allYearsSelected,
+    keepTypeMenuOpen,
+    keepYearMenuOpen,
+  }) {
+    updateButtonState(typeButtons, selectedTypes, allTypesSelected, payload.types);
+    updateButtonState(yearButtons, selectedYears, allYearsSelected, currentVisibleYears, (v) => Number(v));
+    const typeMenuText = getTypeMenuText(
+      typeMenuTypes,
+      typeMenuSelection.allMode || typeMenuTypes.length === payload.types.length,
+    );
+    const yearMenuText = getYearMenuText(yearMenuYears, yearMenuSelection.allMode);
+    setMenuLabel(
+      typeMenuLabel,
+      typeMenuText,
+      !typeMenuSelection.allMode && typeMenuTypes.length > 1 ? "Multiple Activities Selected" : "",
+    );
+    setMenuLabel(
+      yearMenuLabel,
+      yearMenuText,
+      !yearMenuSelection.allMode && yearMenuYears.length > 1 ? "Multiple Years Selected" : "",
+    );
+    if (typeClearButton) {
+      if (allTypesSelected) {
+        typeClearButton.textContent = "Select All";
+        typeClearButton.disabled = payload.types.length === 0;
+      } else {
+        typeClearButton.textContent = "Clear";
+        typeClearButton.disabled = false;
+      }
+    }
+    if (yearClearButton) {
+      yearClearButton.disabled = allYearsSelected;
+    }
+    if (keepTypeMenuOpen) {
+      setMenuOpen(typeMenu, typeMenuButton, true);
+    }
+    if (keepYearMenuOpen) {
+      setMenuOpen(yearMenu, yearMenuButton, true);
     }
   }
 
@@ -3072,43 +3116,18 @@ async function init() {
       update();
     });
 
+    syncFilterControlState({
+      typeMenuTypes,
+      yearMenuYears,
+      typeMenuSelection,
+      yearMenuSelection,
+      allTypesSelected,
+      allYearsSelected,
+      keepTypeMenuOpen,
+      keepYearMenuOpen,
+    });
+
     if (menuOnly) {
-      updateButtonState(typeButtons, selectedTypes, allTypesSelected, payload.types);
-      updateButtonState(yearButtons, selectedYears, allYearsSelected, currentVisibleYears, (v) => Number(v));
-      const typeMenuText = getTypeMenuText(
-        typeMenuTypes,
-        typeMenuSelection.allMode || typeMenuTypes.length === payload.types.length,
-      );
-      const yearMenuText = getYearMenuText(yearMenuYears, yearMenuSelection.allMode);
-      setMenuLabel(
-        typeMenuLabel,
-        typeMenuText,
-        !typeMenuSelection.allMode && typeMenuTypes.length > 1 ? "Multiple Activities Selected" : "",
-      );
-      setMenuLabel(
-        yearMenuLabel,
-        yearMenuText,
-        !yearMenuSelection.allMode && yearMenuYears.length > 1 ? "Multiple Years Selected" : "",
-      );
-      if (typeClearButton) {
-        const mobileLayout = isNarrowLayoutViewport();
-        if (mobileLayout && areAllTypesSelected()) {
-          typeClearButton.textContent = "Select All";
-          typeClearButton.disabled = payload.types.length === 0;
-        } else {
-          typeClearButton.textContent = "Clear";
-          typeClearButton.disabled = areAllTypesSelected();
-        }
-      }
-      if (yearClearButton) {
-        yearClearButton.disabled = areAllYearsSelected();
-      }
-      if (keepTypeMenuOpen) {
-        setMenuOpen(typeMenu, typeMenuButton, true);
-      }
-      if (keepYearMenuOpen) {
-        setMenuOpen(yearMenu, yearMenuButton, true);
-      }
       return;
     }
 
@@ -3127,7 +3146,6 @@ async function init() {
     };
     const frequencyCardColor = getActivityFrequencyCardColor(types);
     const showCombinedTypes = types.length > 1;
-    const allAvailableTypesSelected = types.length === payload.types.length;
     const activeSummaryTypeCards = allTypesSelected ? new Set() : new Set(types);
     const nextVisibleYearMetricYears = new Set();
     const nextFilterableYearMetricsByYear = new Map();
@@ -3172,43 +3190,6 @@ async function init() {
       syncResetAllButtonState();
     };
 
-    updateButtonState(typeButtons, selectedTypes, allTypesSelected, payload.types);
-    updateButtonState(yearButtons, selectedYears, allYearsSelected, currentVisibleYears, (v) => Number(v));
-    const typeMenuText = getTypeMenuText(
-      typeMenuTypes,
-      typeMenuSelection.allMode || typeMenuTypes.length === payload.types.length,
-    );
-    const yearMenuText = getYearMenuText(yearMenuYears, yearMenuSelection.allMode);
-    setMenuLabel(
-      typeMenuLabel,
-      typeMenuText,
-      !typeMenuSelection.allMode && typeMenuTypes.length > 1 ? "Multiple Activities Selected" : "",
-    );
-    setMenuLabel(
-      yearMenuLabel,
-      yearMenuText,
-      !yearMenuSelection.allMode && yearMenuYears.length > 1 ? "Multiple Years Selected" : "",
-    );
-    if (typeClearButton) {
-      const mobileLayout = isNarrowLayoutViewport();
-      if (mobileLayout && areAllTypesSelected()) {
-        typeClearButton.textContent = "Select All";
-        typeClearButton.disabled = payload.types.length === 0;
-      } else {
-        typeClearButton.textContent = "Clear";
-        typeClearButton.disabled = areAllTypesSelected();
-      }
-    }
-    if (yearClearButton) {
-      yearClearButton.disabled = areAllYearsSelected();
-    }
-    if (keepTypeMenuOpen) {
-      setMenuOpen(typeMenu, typeMenuButton, true);
-    }
-    if (keepYearMenuOpen) {
-      setMenuOpen(yearMenu, yearMenuButton, true);
-    }
-
     const previousCardScrollOffsets = resetCardScroll
       ? new Map()
       : captureCardScrollOffsets(heatmaps);
@@ -3219,10 +3200,6 @@ async function init() {
       if (showCombinedTypes) {
         const section = document.createElement("div");
         section.className = "type-section";
-        const header = document.createElement("div");
-        header.className = "type-header";
-        header.textContent = allAvailableTypesSelected ? "All Activities" : formatActivitiesTitle(types);
-        section.appendChild(header);
         const list = document.createElement("div");
         list.className = "type-list";
         const yearTotals = getTypesYearTotals(payload, types, years);
@@ -3301,10 +3278,6 @@ async function init() {
         types.forEach((type) => {
           const section = document.createElement("div");
           section.className = "type-section";
-          const header = document.createElement("div");
-          header.className = "type-header";
-          header.textContent = formatActivitiesTitle([type]);
-          section.appendChild(header);
 
           const list = document.createElement("div");
           list.className = "type-list";
@@ -3479,8 +3452,8 @@ async function init() {
   }
   if (typeClearButton) {
     typeClearButton.addEventListener("click", () => {
-      const mobileLayout = isNarrowLayoutViewport();
-      if (mobileLayout && areAllTypesSelected()) {
+      const narrowLayout = isNarrowLayoutViewport();
+      if (areAllTypesSelected()) {
         if (!payload.types.length) return;
         draftTypeMenuSelection = null;
         setMenuOpen(typeMenu, typeMenuButton, false);
@@ -3489,13 +3462,12 @@ async function init() {
         update();
         return;
       }
-      if (areAllTypesSelected()) return;
       draftTypeMenuSelection = null;
       setMenuOpen(typeMenu, typeMenuButton, false);
       allTypesMode = true;
       selectedTypes.clear();
       update();
-      if (mobileLayout) {
+      if (narrowLayout) {
         typeClearButton.blur();
       }
     });
@@ -3599,6 +3571,7 @@ async function init() {
       }
       lastViewportWidth = width;
       lastIsNarrowLayout = isNarrowLayout;
+      resetPersistentSideStatSizing();
       update();
     }, 150);
   });

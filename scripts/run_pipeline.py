@@ -1,7 +1,10 @@
 import argparse
+import json
 import os
 import re
 import subprocess
+import urllib.parse
+import urllib.request
 from typing import Optional
 
 from aggregate import aggregate as aggregate_func
@@ -85,6 +88,67 @@ def _pages_url_from_slug(slug: str) -> str:
     return f"https://{owner}.github.io/{repo}/"
 
 
+def _normalize_dashboard_url(value: str) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    if not re.match(r"^[a-z][a-z0-9+.-]*://", raw, re.IGNORECASE):
+        raw = f"https://{raw.lstrip('/')}"
+
+    parsed = urllib.parse.urlparse(raw)
+    scheme = str(parsed.scheme or "").lower()
+    if scheme not in {"http", "https"}:
+        return ""
+    host = str(parsed.netloc or "").strip()
+    if not host:
+        return ""
+
+    path = str(parsed.path or "/")
+    if not path.startswith("/"):
+        path = f"/{path}"
+    if not path.endswith("/") and not parsed.query:
+        path = f"{path}/"
+
+    return urllib.parse.urlunparse((scheme, host, path, "", parsed.query, ""))
+
+
+def _dashboard_url_from_pages_api(repo_slug: str) -> Optional[str]:
+    slug = str(repo_slug or "").strip()
+    if not slug or "/" not in slug:
+        return None
+
+    token = str(os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or "").strip()
+    if not token:
+        return None
+
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{slug}/pages",
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "git-sweaty-run-pipeline",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+
+    custom_url = _normalize_dashboard_url(payload.get("cname", ""))
+    if custom_url:
+        return custom_url
+
+    html_url = _normalize_dashboard_url(payload.get("html_url", ""))
+    if html_url:
+        return html_url
+    return None
+
+
 def _update_readme_live_site_link() -> None:
     if not os.path.exists(README_MD):
         return
@@ -93,7 +157,7 @@ def _update_readme_live_site_link() -> None:
     if not slug:
         return
 
-    target_url = _pages_url_from_slug(slug)
+    target_url = _dashboard_url_from_pages_api(slug) or _pages_url_from_slug(slug)
     with open(README_MD, "r", encoding="utf-8") as f:
         content = f.read()
 

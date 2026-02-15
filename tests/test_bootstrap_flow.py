@@ -75,6 +75,16 @@ if [[ "${1:-}" == "repo" && "${2:-}" == "fork" ]]; then
   exit 0
 fi
 if [[ "${1:-}" == "repo" && "${2:-}" == "view" ]]; then
+  target="${3:-}"
+  if [[ -n "${FAKE_REPO_VIEW_FAIL_FOR:-}" && "${target}" == "${FAKE_REPO_VIEW_FAIL_FOR}" ]]; then
+    exit 1
+  fi
+  exit 0
+fi
+if [[ "${1:-}" == "repo" && "${2:-}" == "list" ]]; then
+  if [[ -n "${FAKE_GH_REPO_LIST_OUTPUT:-}" ]]; then
+    printf "%s\\n" "${FAKE_GH_REPO_LIST_OUTPUT}"
+  fi
   exit 0
 fi
 exit 0
@@ -254,6 +264,43 @@ exit 0
                 os.path.realpath(expected_target),
             )
 
+            self.assertFalse(os.path.exists(py_log), "setup_auth should not run when user skips setup")
+
+    def test_bootstrap_uses_renamed_fork_slug_when_default_slug_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fake_bin, git_log, py_log = self._make_fake_bin(tmpdir)
+            run_dir = os.path.join(tmpdir, "runner")
+            os.makedirs(run_dir, exist_ok=True)
+
+            env = os.environ.copy()
+            env["PATH"] = f"{fake_bin}:{env['PATH']}"
+            env["FAKE_GIT_LOG"] = git_log
+            env["FAKE_GH_LOG"] = os.path.join(tmpdir, "gh.log")
+            env["FAKE_PY_LOG"] = py_log
+            env["FAKE_REPO_VIEW_FAIL_FOR"] = "tester/git-sweaty"
+            env["FAKE_GH_REPO_LIST_OUTPUT"] = "tester/strava"
+
+            # Existing clone path? no -> fork? yes -> run setup? no
+            proc = subprocess.run(
+                ["bash", BOOTSTRAP_PATH],
+                input="n\ny\nn\n",
+                text=True,
+                capture_output=True,
+                cwd=run_dir,
+                env=env,
+                check=False,
+            )
+            self.assertEqual(proc.returncode, 0, msg=f"{proc.stdout}\n{proc.stderr}")
+
+            with open(git_log, "r", encoding="utf-8") as f:
+                git_calls = f.read()
+            clone_lines = [line for line in git_calls.splitlines() if line.startswith("clone ")]
+            self.assertEqual(len(clone_lines), 1, msg=git_calls)
+            self.assertIn("clone https://github.com/tester/strava.git ", clone_lines[0], msg=git_calls)
+
+            with open(env["FAKE_GH_LOG"], "r", encoding="utf-8") as f:
+                gh_calls = f.read()
+            self.assertIn("repo list tester --fork --limit 1000 --json nameWithOwner,parent", gh_calls)
             self.assertFalse(os.path.exists(py_log), "setup_auth should not run when user skips setup")
 
 

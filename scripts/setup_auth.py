@@ -395,6 +395,30 @@ def _venv_python_path(venv_dir: str) -> str:
     return os.path.join(venv_dir, "bin", "python")
 
 
+def _venv_has_pip(venv_python: str) -> bool:
+    probe = _run([venv_python, "-m", "pip", "--version"], check=False)
+    return probe.returncode == 0
+
+
+def _ensure_venv_pip(venv_python: str) -> None:
+    if _venv_has_pip(venv_python):
+        return
+
+    print("pip is missing in .venv; attempting bootstrap via ensurepip...")
+    ensure = _run([venv_python, "-m", "ensurepip", "--upgrade"], check=False)
+    if ensure.returncode != 0:
+        detail = _first_stderr_line(ensure.stderr or ensure.stdout)
+        raise RuntimeError(
+            "The local virtual environment was created without pip and automatic pip bootstrap failed "
+            f"({detail}). Install Python with ensurepip support (for example install the OS package that "
+            "provides python3-venv), or run with --no-bootstrap-env and manage your environment manually."
+        )
+    if not _venv_has_pip(venv_python):
+        raise RuntimeError(
+            "The local virtual environment was created without pip and could not be repaired automatically."
+        )
+
+
 def _bootstrap_env_and_reexec(args: argparse.Namespace) -> None:
     if args.no_bootstrap_env or args.env_bootstrapped or _in_virtualenv():
         return
@@ -410,6 +434,7 @@ def _bootstrap_env_and_reexec(args: argparse.Namespace) -> None:
         print("\nCreating local virtual environment (.venv)...")
         _run_stream([sys.executable, "-m", "venv", venv_dir], cwd=root)
 
+    _ensure_venv_pip(venv_python)
     print("Installing Python dependencies into .venv...")
     _run_stream([venv_python, "-m", "pip", "install", "--upgrade", "pip"], cwd=root)
     _run_stream([venv_python, "-m", "pip", "install", "-r", requirements], cwd=root)

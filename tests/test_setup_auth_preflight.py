@@ -97,6 +97,74 @@ class SetupAuthPreflightTests(unittest.TestCase):
         self.assertIn("authorize SSO", message)
 
 
+class SetupAuthBootstrapEnvTests(unittest.TestCase):
+    def test_ensure_venv_pip_bootstraps_with_ensurepip_when_missing(self) -> None:
+        venv_python = "/tmp/project/.venv/bin/python"
+        responses = [
+            _completed_process(returncode=1, stderr="No module named pip\n"),
+            _completed_process(returncode=0, stdout="installed pip\n"),
+            _completed_process(returncode=0, stdout="pip 24.0\n"),
+        ]
+        with mock.patch("setup_auth._run", side_effect=responses) as run_mock:
+            setup_auth._ensure_venv_pip(venv_python)
+
+        self.assertEqual(
+            run_mock.mock_calls,
+            [
+                mock.call([venv_python, "-m", "pip", "--version"], check=False),
+                mock.call([venv_python, "-m", "ensurepip", "--upgrade"], check=False),
+                mock.call([venv_python, "-m", "pip", "--version"], check=False),
+            ],
+        )
+
+    def test_ensure_venv_pip_raises_with_actionable_error_when_ensurepip_fails(self) -> None:
+        venv_python = "/tmp/project/.venv/bin/python"
+        responses = [
+            _completed_process(returncode=1, stderr="No module named pip\n"),
+            _completed_process(returncode=1, stderr="No module named ensurepip\n"),
+        ]
+        with mock.patch("setup_auth._run", side_effect=responses):
+            with self.assertRaises(RuntimeError) as exc_ctx:
+                setup_auth._ensure_venv_pip(venv_python)
+
+        message = str(exc_ctx.exception)
+        self.assertIn("without pip", message)
+        self.assertIn("--no-bootstrap-env", message)
+
+    def test_bootstrap_env_calls_ensure_venv_pip_before_pip_installs(self) -> None:
+        args = Namespace(no_bootstrap_env=False, env_bootstrapped=False)
+        venv_python = "/repo/.venv/bin/python"
+        requirements = "/repo/requirements.txt"
+        script_path = "/repo/scripts/setup_auth.py"
+
+        def fake_exists(path: str) -> bool:
+            return path in {requirements, venv_python}
+
+        with (
+            mock.patch("setup_auth._in_virtualenv", return_value=False),
+            mock.patch("setup_auth._project_root", return_value="/repo"),
+            mock.patch("setup_auth._venv_python_path", return_value=venv_python),
+            mock.patch("setup_auth.os.path.exists", side_effect=fake_exists),
+            mock.patch("setup_auth._ensure_venv_pip") as ensure_pip_mock,
+            mock.patch("setup_auth._run_stream") as run_stream_mock,
+            mock.patch("setup_auth.subprocess.call", return_value=0),
+            mock.patch("setup_auth.__file__", script_path),
+            mock.patch("setup_auth.sys.argv", ["setup_auth.py"]),
+        ):
+            with self.assertRaises(SystemExit) as exc_ctx:
+                setup_auth._bootstrap_env_and_reexec(args)
+
+        self.assertEqual(exc_ctx.exception.code, 0)
+        ensure_pip_mock.assert_called_once_with(venv_python)
+        self.assertEqual(
+            run_stream_mock.mock_calls,
+            [
+                mock.call([venv_python, "-m", "pip", "install", "--upgrade", "pip"], cwd="/repo"),
+                mock.call([venv_python, "-m", "pip", "install", "-r", requirements], cwd="/repo"),
+            ],
+        )
+
+
 class SetupAuthDispatchTests(unittest.TestCase):
     def test_existing_dashboard_source_normalizes_supported_values(self) -> None:
         with mock.patch(
