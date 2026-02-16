@@ -1281,6 +1281,18 @@
         transform: none;
       }
 
+      .tooltip-backdrop {
+        position: fixed;
+        inset: 0;
+        background: transparent;
+        pointer-events: none;
+        z-index: 9;
+      }
+
+      .tooltip-backdrop.visible {
+        pointer-events: auto;
+      }
+
       .dashboard-footer {
         color: var(--muted);
         font-size: 12px;
@@ -2020,6 +2032,7 @@
       </footer>
     </div>
 
+    <div id="tooltipBackdrop" class="tooltip-backdrop"></div>
     <div id="tooltip" class="tooltip"></div>
 
     <script src="app.js?v=__APP_VERSION__"></script>

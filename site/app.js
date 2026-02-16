@@ -45,6 +45,7 @@ const metricUnitsButton = document.getElementById("metricUnitsButton");
 const typeMenuOptions = document.getElementById("typeMenuOptions");
 const yearMenuOptions = document.getElementById("yearMenuOptions");
 const heatmaps = document.getElementById("heatmaps");
+const tooltipBackdrop = document.getElementById("tooltipBackdrop");
 const tooltip = document.getElementById("tooltip");
 const summary = document.getElementById("summary");
 const headerMeta = document.getElementById("headerMeta");
@@ -978,6 +979,9 @@ function showTooltip(content, x, y, options = {}) {
     tooltip.style.transformOrigin = "top left";
   }
   tooltip.classList.add("visible");
+  if (isTouch && tooltipBackdrop) {
+    tooltipBackdrop.classList.add("visible");
+  }
   if (isTouch) {
     updateTouchTooltipWrapMode();
   }
@@ -993,6 +997,9 @@ function hideTooltip() {
   tooltip.classList.remove("visible");
   tooltip.classList.remove("nowrap");
   tooltip.classList.remove("interactive");
+  if (isTouch && tooltipBackdrop) {
+    tooltipBackdrop.classList.remove("visible");
+  }
 }
 
 function clearActiveTouchCell() {
@@ -4234,6 +4241,16 @@ async function init() {
       dismissTooltipState();
     });
   } else {
+    if (tooltipBackdrop) {
+      tooltipBackdrop.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+      });
+      tooltipBackdrop.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dismissTooltipState();
+      });
+    }
     tooltip.addEventListener("pointerdown", (event) => {
       event.stopPropagation();
       markTouchTooltipInteractionBlock();
