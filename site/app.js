@@ -22,6 +22,7 @@ const WEEKDAY_LABELS_BY_WEEK_START = Object.freeze({
   [WEEK_START_MONDAY]: Object.freeze(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]),
 });
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const ACTIVE_DAYS_METRIC_KEY = "active_days";
 const DEFAULT_UNITS = Object.freeze({ distance: "mi", elevation: "ft" });
 const UNIT_SYSTEM_TO_UNITS = Object.freeze({
   imperial: Object.freeze({ distance: "mi", elevation: "ft" }),
@@ -46,22 +47,40 @@ const yearMenuOptions = document.getElementById("yearMenuOptions");
 const heatmaps = document.getElementById("heatmaps");
 const tooltip = document.getElementById("tooltip");
 const summary = document.getElementById("summary");
-const updated = document.getElementById("updated");
 const headerMeta = document.getElementById("headerMeta");
 const headerLinks = document.querySelector(".header-links");
 const repoLink = document.querySelector(".repo-link");
 const stravaProfileLink = document.querySelector(".strava-profile-link");
+const stravaProfileLabel = stravaProfileLink
+  ? stravaProfileLink.querySelector(".strava-profile-label")
+  : null;
 const footerHostedPrefix = document.getElementById("footerHostedPrefix");
 const footerHostedLink = document.getElementById("footerHostedLink");
 const footerPoweredLabel = document.getElementById("footerPoweredLabel");
 const dashboardTitle = document.getElementById("dashboardTitle");
 const isTouch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+const hasTouchInput = Number(window.navigator?.maxTouchPoints || 0) > 0;
+const useTouchInteractions = isTouch || hasTouchInput;
 const BREAKPOINTS = Object.freeze({
   NARROW_LAYOUT_MAX: 900,
 });
 let pendingAlignmentFrame = null;
+let pendingSummaryTailFrame = null;
 let persistentSideStatCardWidth = 0;
 let persistentSideStatCardMinHeight = 0;
+let pinnedTooltipCell = null;
+let touchTooltipInteractionBlockUntil = 0;
+let touchTooltipDismissBlockUntil = 0;
+let lastTooltipPointerType = "";
+let touchTooltipLinkClickSuppressUntil = 0;
+let touchTooltipRecentPointerUpCell = null;
+let touchTooltipRecentPointerUpUntil = 0;
+let touchTooltipRecentPointerUpWasTap = true;
+let touchTooltipPointerDownState = null;
+const PROFILE_PROVIDER_STRAVA = "strava";
+const PROFILE_PROVIDER_GARMIN = "garmin";
+const TOUCH_TOOLTIP_TAP_MAX_MOVE_PX = 10;
+const TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX = 2;
 
 function resetPersistentSideStatSizing() {
   persistentSideStatCardWidth = 0;
@@ -114,8 +133,18 @@ function requestLayoutAlignment() {
   });
 }
 
+function requestSummaryTypeTailCentering() {
+  if (pendingSummaryTailFrame !== null) {
+    window.cancelAnimationFrame(pendingSummaryTailFrame);
+  }
+  pendingSummaryTailFrame = window.requestAnimationFrame(() => {
+    pendingSummaryTailFrame = null;
+    centerSummaryTypeCardTailRow(summary);
+  });
+}
+
 function schedulePostInteractionAlignment() {
-  if (isTouch) return;
+  if (useTouchInteractions) return;
   requestLayoutAlignment();
 }
 
@@ -322,23 +351,37 @@ function syncFooterHostedLink(fallbackRepo) {
   }
 }
 
-function syncDesktopHeaderLinkPlacement() {
-  if (!repoLink || !headerMeta || !headerLinks) return;
-  const shouldStackRepoOnLeft = Boolean(
-    isDesktopLikeViewport() && stravaProfileLink && !stravaProfileLink.hidden,
-  );
-
-  if (shouldStackRepoOnLeft) {
-    if (repoLink.parentElement !== headerMeta) {
-      const insertBeforeNode = updated && updated.parentElement === headerMeta ? updated : null;
-      headerMeta.insertBefore(repoLink, insertBeforeNode);
-    }
-    return;
-  }
-
+function syncHeaderLinkPlacement() {
+  if (!repoLink || !headerLinks) return;
   if (repoLink.parentElement !== headerLinks) {
     headerLinks.insertBefore(repoLink, headerLinks.firstChild);
   }
+
+  if (!stravaProfileLink || !headerMeta) return;
+  if (stravaProfileLink.parentElement !== headerMeta) {
+    headerMeta.appendChild(stravaProfileLink);
+  }
+}
+
+function syncProfileLinkNavigationTarget() {
+  if (!stravaProfileLink) return;
+  if (isDesktopLikeViewport()) {
+    stravaProfileLink.target = "_blank";
+    stravaProfileLink.rel = "noopener noreferrer";
+    return;
+  }
+  stravaProfileLink.removeAttribute("target");
+  stravaProfileLink.removeAttribute("rel");
+}
+
+function setProfileProviderIcon(provider) {
+  if (!stravaProfileLink) return;
+  stravaProfileLink.classList.remove("profile-provider-strava", "profile-provider-garmin");
+  if (provider === PROFILE_PROVIDER_GARMIN) {
+    stravaProfileLink.classList.add("profile-provider-garmin");
+    return;
+  }
+  stravaProfileLink.classList.add("profile-provider-strava");
 }
 
 function parseStravaProfileUrl(value) {
@@ -356,7 +399,9 @@ function parseStravaProfileUrl(value) {
   }
 
   const host = String(parsed.hostname || "").toLowerCase();
-  if (!(host === "strava.com" || host.endsWith(".strava.com"))) {
+  const isStravaHost = host === "strava.com" || host.endsWith(".strava.com");
+  const isGarminHost = host === "connect.garmin.com" || host.endsWith(".connect.garmin.com");
+  if (!isStravaHost && !isGarminHost) {
     return null;
   }
 
@@ -365,24 +410,79 @@ function parseStravaProfileUrl(value) {
     return null;
   }
 
+  let normalizedPath = path;
+  if (isGarminHost) {
+    const garminMatch = path.match(/^\/(?:modern\/)?profile\/([^/]+)(?:\/.*)?$/i);
+    if (!garminMatch) {
+      return null;
+    }
+    normalizedPath = `/modern/profile/${garminMatch[1]}`;
+  }
+
   return {
-    href: `${parsed.protocol}//${parsed.host}${path}${parsed.search}`,
-    label: "Strava Profile",
+    href: `${parsed.protocol}//${parsed.host}${normalizedPath}${parsed.search}`,
+    label: isGarminHost ? "Garmin" : "Strava",
   };
 }
 
-function syncStravaProfileLink(profileUrl) {
+function parseStravaActivityUrl(value) {
+  let raw = String(value || "").trim();
+  if (!raw) return null;
+  if (!/^https?:\/\//i.test(raw)) {
+    raw = `https://${raw.replace(/^\/+/, "")}`;
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch (_error) {
+    return null;
+  }
+
+  const host = String(parsed.hostname || "").toLowerCase();
+  const isStravaHost = host === "strava.com" || host.endsWith(".strava.com");
+  const isGarminHost = host === "connect.garmin.com" || host.endsWith(".connect.garmin.com");
+  if (!isStravaHost && !isGarminHost) {
+    return null;
+  }
+
+  const path = String(parsed.pathname || "").trim().replace(/\/+$/, "");
+  if (isStravaHost && !/^\/activities\/[^/]+$/i.test(path)) {
+    return null;
+  }
+  if (isGarminHost && !/^\/(?:modern\/)?activity\/[^/]+$/i.test(path)) {
+    return null;
+  }
+
+  return {
+    href: `${parsed.protocol}//${parsed.host}${path}${parsed.search}`,
+  };
+}
+
+function syncStravaProfileLink(profileUrl, source) {
   if (!stravaProfileLink) return;
   const parsed = parseStravaProfileUrl(profileUrl);
   if (!parsed) {
     stravaProfileLink.hidden = true;
-    syncDesktopHeaderLinkPlacement();
+    setProfileProviderIcon(PROFILE_PROVIDER_STRAVA);
+    syncProfileLinkNavigationTarget();
+    syncHeaderLinkPlacement();
     return;
   }
   stravaProfileLink.href = parsed.href;
-  stravaProfileLink.textContent = parsed.label;
+  const providerLabel = parsed.label || providerDisplayName(source) || "Profile";
+  const provider = providerLabel === "Garmin"
+    ? PROFILE_PROVIDER_GARMIN
+    : PROFILE_PROVIDER_STRAVA;
+  setProfileProviderIcon(provider);
+  if (stravaProfileLabel) {
+    stravaProfileLabel.textContent = providerLabel;
+  } else {
+    stravaProfileLink.textContent = providerLabel;
+  }
   stravaProfileLink.hidden = false;
-  syncDesktopHeaderLinkPlacement();
+  syncProfileLinkNavigationTarget();
+  syncHeaderLinkPlacement();
 }
 
 function providerDisplayName(source) {
@@ -811,7 +911,7 @@ function positionTooltip(x, y) {
   const maxX = Math.max(minX, viewport.offsetLeft + viewport.width - rect.width - padding);
   const maxY = Math.max(minY, viewport.offsetTop + viewport.height - rect.height - padding);
   const left = clamp(anchorX + 12, minX, maxX);
-  const preferredTop = isTouch ? (anchorY - rect.height - 12) : (anchorY + 12);
+  const preferredTop = useTouchInteractions ? (anchorY - rect.height - 12) : (anchorY + 12);
   const top = clamp(preferredTop, minY, maxY);
   tooltip.style.left = `${left}px`;
   tooltip.style.top = `${top}px`;
@@ -819,7 +919,7 @@ function positionTooltip(x, y) {
 }
 
 function updateTouchTooltipWrapMode() {
-  if (!isTouch) return;
+  if (!useTouchInteractions) return;
   const padding = 12;
   const viewport = getViewportMetrics();
   const availableWidth = Math.max(0, viewport.width - (padding * 2));
@@ -841,12 +941,153 @@ function updateTouchTooltipWrapMode() {
   }
 }
 
-function showTooltip(text, x, y) {
-  tooltip.textContent = text;
+function normalizeTooltipHref(value) {
+  const parsed = parseStravaActivityUrl(value);
+  return parsed?.href || "";
+}
+
+function normalizeTooltipLine(line) {
+  if (Array.isArray(line)) {
+    return line.map((segment) => {
+      if (segment && typeof segment === "object") {
+        return {
+          text: String(segment.text ?? ""),
+          href: normalizeTooltipHref(segment.href),
+        };
+      }
+      return { text: String(segment ?? ""), href: "" };
+    });
+  }
+  return [{ text: String(line ?? ""), href: "" }];
+}
+
+function normalizeTooltipContent(content) {
+  if (content && typeof content === "object" && Array.isArray(content.lines)) {
+    return content.lines.map((line) => normalizeTooltipLine(line));
+  }
+  if (Array.isArray(content)) {
+    return content.map((line) => normalizeTooltipLine(line));
+  }
+  return String(content ?? "").split("\n").map((line) => normalizeTooltipLine(line));
+}
+
+function rememberTooltipPointerType(event) {
+  const pointerType = String(event?.pointerType || "").trim().toLowerCase();
+  if (pointerType) {
+    lastTooltipPointerType = pointerType;
+    return;
+  }
+  const type = String(event?.type || "").trim().toLowerCase();
+  if (type.startsWith("touch")) {
+    lastTooltipPointerType = "touch";
+  }
+}
+
+function isTouchTooltipActivationEvent(event) {
+  const pointerType = String(event?.pointerType || "").trim().toLowerCase();
+  if (pointerType) {
+    return pointerType === "touch" || pointerType === "pen";
+  }
+  if (lastTooltipPointerType) {
+    return lastTooltipPointerType === "touch" || lastTooltipPointerType === "pen";
+  }
+  if (event?.sourceCapabilities && event.sourceCapabilities.firesTouchEvents === true) {
+    return true;
+  }
+  return useTouchInteractions;
+}
+
+function renderTooltipContent(content) {
+  const normalizedLines = normalizeTooltipContent(content);
+  tooltip.innerHTML = "";
+  let hasLinks = false;
+  normalizedLines.forEach((line) => {
+    const lineEl = document.createElement("div");
+    lineEl.className = "tooltip-line";
+    if (!line.length) {
+      lineEl.textContent = "";
+      tooltip.appendChild(lineEl);
+      return;
+    }
+    line.forEach((segment) => {
+      const text = String(segment?.text ?? "");
+      const href = normalizeTooltipHref(segment?.href);
+      if (href) {
+        hasLinks = true;
+        const link = document.createElement("a");
+        link.className = "tooltip-link";
+        link.href = href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.addEventListener(
+          "touchstart",
+          (event) => {
+            rememberTooltipPointerType(event);
+            event.stopPropagation();
+            markTouchTooltipInteractionBlock(1600);
+          },
+          { passive: true },
+        );
+        link.addEventListener("pointerdown", (event) => {
+          rememberTooltipPointerType(event);
+          event.stopPropagation();
+          if (isTouchTooltipActivationEvent(event)) {
+            markTouchTooltipInteractionBlock(1600);
+          }
+        });
+        link.addEventListener(
+          "touchend",
+          (event) => {
+            rememberTooltipPointerType(event);
+            if (!isTouchTooltipActivationEvent(event)) {
+              return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            markTouchTooltipInteractionBlock(1600);
+            markTouchTooltipLinkClickSuppress(1200);
+            openTooltipLinkInCurrentTab(link);
+          },
+          { passive: false },
+        );
+        link.addEventListener("click", (event) => {
+          if (shouldSuppressTouchTooltipLinkClick() && isTouchTooltipActivationEvent(event)) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
+          handleTooltipLinkActivation(event);
+        });
+        link.textContent = text;
+        lineEl.appendChild(link);
+      } else {
+        lineEl.appendChild(document.createTextNode(text));
+      }
+    });
+    tooltip.appendChild(lineEl);
+  });
+  return { hasLinks };
+}
+
+function isTooltipPinned() {
+  return Boolean(pinnedTooltipCell);
+}
+
+function clearPinnedTooltipCell() {
+  if (!pinnedTooltipCell) return;
+  pinnedTooltipCell.classList.remove("active");
+  pinnedTooltipCell = null;
+}
+
+function showTooltip(content, x, y, options = {}) {
+  const { interactive = false } = options;
+  const rendered = renderTooltipContent(content);
+  const allowInteraction = rendered.hasLinks && (useTouchInteractions || interactive);
+  tooltip.classList.toggle("interactive", allowInteraction);
   const tooltipScale = getTooltipScale();
-  if (isTouch) {
+  if (useTouchInteractions) {
     tooltip.classList.add("touch");
-    tooltip.style.transform = `scale(${tooltipScale})`;
+    tooltip.style.transform = "none";
     tooltip.style.transformOrigin = "top left";
   } else {
     tooltip.classList.remove("touch");
@@ -854,12 +1095,12 @@ function showTooltip(text, x, y) {
     tooltip.style.transformOrigin = "top left";
   }
   tooltip.classList.add("visible");
-  if (isTouch) {
+  if (useTouchInteractions) {
     updateTouchTooltipWrapMode();
   }
   requestAnimationFrame(() => {
     positionTooltip(x, y);
-    if (isTouch) {
+    if (useTouchInteractions) {
       requestAnimationFrame(() => positionTooltip(x, y));
     }
   });
@@ -868,6 +1109,247 @@ function showTooltip(text, x, y) {
 function hideTooltip() {
   tooltip.classList.remove("visible");
   tooltip.classList.remove("nowrap");
+  tooltip.classList.remove("interactive");
+}
+
+function clearActiveTouchCell() {
+  const active = document.querySelector(".cell.active");
+  if (active) active.classList.remove("active");
+}
+
+function dismissTooltipState() {
+  clearPinnedTooltipCell();
+  clearActiveTouchCell();
+  hideTooltip();
+}
+
+function nowMs() {
+  return (window.performance && typeof window.performance.now === "function")
+    ? window.performance.now()
+    : Date.now();
+}
+
+function markTouchTooltipDismissBlock(durationMs = 450) {
+  if (!useTouchInteractions) return;
+  const blockUntil = nowMs() + Math.max(0, Number(durationMs) || 0);
+  touchTooltipDismissBlockUntil = Math.max(touchTooltipDismissBlockUntil, blockUntil);
+}
+
+function shouldIgnoreTouchTooltipDismiss() {
+  if (!useTouchInteractions) return false;
+  return nowMs() <= touchTooltipDismissBlockUntil;
+}
+
+function markTouchTooltipLinkClickSuppress(durationMs = 1200) {
+  if (!useTouchInteractions) return;
+  const blockUntil = nowMs() + Math.max(0, Number(durationMs) || 0);
+  touchTooltipLinkClickSuppressUntil = Math.max(touchTooltipLinkClickSuppressUntil, blockUntil);
+}
+
+function shouldSuppressTouchTooltipLinkClick() {
+  if (!useTouchInteractions) return false;
+  return nowMs() <= touchTooltipLinkClickSuppressUntil;
+}
+
+function markTouchTooltipCellPointerUp(cell, durationMs = 700, wasTap = true) {
+  if (!useTouchInteractions) return;
+  if (!cell) return;
+  touchTooltipRecentPointerUpCell = cell;
+  touchTooltipRecentPointerUpUntil = nowMs() + Math.max(0, Number(durationMs) || 0);
+  touchTooltipRecentPointerUpWasTap = Boolean(wasTap);
+}
+
+function shouldSuppressTouchTooltipCellClick(event, cell) {
+  if (!useTouchInteractions) return false;
+  if (!cell) return false;
+  if (!isTouchTooltipActivationEvent(event)) return false;
+  if (nowMs() > touchTooltipRecentPointerUpUntil) {
+    return false;
+  }
+  if (!touchTooltipRecentPointerUpWasTap) {
+    return true;
+  }
+  if (!touchTooltipRecentPointerUpCell || touchTooltipRecentPointerUpCell !== cell) {
+    return false;
+  }
+  return true;
+}
+
+function markTouchTooltipCellPointerDown(event, cell) {
+  if (!useTouchInteractions) return;
+  if (!cell) return;
+  if (!isTouchTooltipActivationEvent(event)) return;
+  const pointerId = Number(event?.pointerId);
+  const clientX = Number(event?.clientX);
+  const clientY = Number(event?.clientY);
+  const scrollHost = typeof cell.closest === "function"
+    ? cell.closest(".card")
+    : null;
+  touchTooltipPointerDownState = {
+    pointerId: Number.isFinite(pointerId) ? pointerId : null,
+    clientX: Number.isFinite(clientX) ? clientX : null,
+    clientY: Number.isFinite(clientY) ? clientY : null,
+    viewportX: window.scrollX || window.pageXOffset || 0,
+    viewportY: window.scrollY || window.pageYOffset || 0,
+    scrollHost,
+    scrollLeft: scrollHost ? Number(scrollHost.scrollLeft || 0) : 0,
+    scrollTop: scrollHost ? Number(scrollHost.scrollTop || 0) : 0,
+  };
+}
+
+function wasTouchTooltipCellTapGesture(event) {
+  const state = touchTooltipPointerDownState;
+  if (!state) {
+    return true;
+  }
+
+  const pointerId = Number(event?.pointerId);
+  if (state.pointerId !== null && Number.isFinite(pointerId) && pointerId !== state.pointerId) {
+    return false;
+  }
+
+  const clientX = Number(event?.clientX);
+  const clientY = Number(event?.clientY);
+  const movedByPointer = Number.isFinite(clientX)
+    && Number.isFinite(clientY)
+    && state.clientX !== null
+    && state.clientY !== null
+    && (
+      Math.abs(clientX - state.clientX) > TOUCH_TOOLTIP_TAP_MAX_MOVE_PX
+      || Math.abs(clientY - state.clientY) > TOUCH_TOOLTIP_TAP_MAX_MOVE_PX
+    );
+
+  const viewportX = window.scrollX || window.pageXOffset || 0;
+  const viewportY = window.scrollY || window.pageYOffset || 0;
+  const viewportMoved = Math.abs(viewportX - state.viewportX) > TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX
+    || Math.abs(viewportY - state.viewportY) > TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX;
+
+  let scrollHostMoved = false;
+  if (state.scrollHost && state.scrollHost.isConnected) {
+    const hostScrollLeft = Number(state.scrollHost.scrollLeft || 0);
+    const hostScrollTop = Number(state.scrollHost.scrollTop || 0);
+    scrollHostMoved = Math.abs(hostScrollLeft - state.scrollLeft) > TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX
+      || Math.abs(hostScrollTop - state.scrollTop) > TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX;
+  }
+
+  return !(movedByPointer || viewportMoved || scrollHostMoved);
+}
+
+function resolveTouchTooltipCellPointerUpTap(event) {
+  if (!useTouchInteractions) return true;
+  const wasTap = wasTouchTooltipCellTapGesture(event);
+  touchTooltipPointerDownState = null;
+  return wasTap;
+}
+
+function markTouchTooltipInteractionBlock(durationMs = 450) {
+  if (!useTouchInteractions) return;
+  const blockUntil = nowMs() + Math.max(0, Number(durationMs) || 0);
+  touchTooltipInteractionBlockUntil = Math.max(touchTooltipInteractionBlockUntil, blockUntil);
+  touchTooltipDismissBlockUntil = Math.max(touchTooltipDismissBlockUntil, blockUntil);
+}
+
+function shouldIgnoreTouchCellClick() {
+  if (!useTouchInteractions) return false;
+  return nowMs() <= touchTooltipInteractionBlockUntil;
+}
+
+function isPointInsideTooltip(event) {
+  if (!tooltip.classList.contains("visible")) return false;
+  const clientX = Number(event?.clientX);
+  const clientY = Number(event?.clientY);
+  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return false;
+  const rect = tooltip.getBoundingClientRect();
+  return clientX >= rect.left
+    && clientX <= rect.right
+    && clientY >= rect.top
+    && clientY <= rect.bottom;
+}
+
+function hasActiveTooltipCell() {
+  return Boolean(document.querySelector(".cell.active"));
+}
+
+function isTooltipLinkTarget(target) {
+  const resolvedTarget = target?.nodeType === Node.TEXT_NODE
+    ? target.parentElement
+    : target;
+  if (!resolvedTarget || typeof resolvedTarget.closest !== "function") return false;
+  return Boolean(resolvedTarget.closest(".tooltip-link"));
+}
+
+function resolveTooltipTargetElement(target) {
+  return target?.nodeType === Node.TEXT_NODE
+    ? target.parentElement
+    : target;
+}
+
+function tooltipLinkElementFromEventTarget(target) {
+  const resolvedTarget = resolveTooltipTargetElement(target);
+  if (!resolvedTarget || typeof resolvedTarget.closest !== "function") {
+    return null;
+  }
+  const linkElement = resolvedTarget.closest(".tooltip-link");
+  return linkElement || null;
+}
+
+function openTooltipLinkInNewTab(linkElement) {
+  const href = normalizeTooltipHref(linkElement?.href || linkElement?.getAttribute?.("href"));
+  if (!href) return false;
+  let opened = null;
+  try {
+    opened = window.open(href, "_blank", "noopener,noreferrer");
+  } catch (_) {
+    opened = null;
+  }
+  if (opened && typeof opened === "object") {
+    try {
+      opened.opener = null;
+    } catch (_) {
+      // Ignore cross-origin access errors; noopener is already requested.
+    }
+    return true;
+  }
+  return false;
+}
+
+function openTooltipLinkInCurrentTab(linkElement) {
+  const href = normalizeTooltipHref(linkElement?.href || linkElement?.getAttribute?.("href"));
+  if (!href) return false;
+  if (window.location && typeof window.location.assign === "function") {
+    window.location.assign(href);
+  } else if (window.location) {
+    window.location.href = href;
+  }
+  return true;
+}
+
+function handleTooltipLinkActivation(event) {
+  const linkElement = tooltipLinkElementFromEventTarget(event.target);
+  if (!linkElement) {
+    return false;
+  }
+  rememberTooltipPointerType(event);
+  event.stopPropagation();
+  if (isTouchTooltipActivationEvent(event)) {
+    if (shouldSuppressTouchTooltipLinkClick()) {
+      event.preventDefault();
+      return true;
+    }
+    // Mobile/touch: force same-tab navigation so universal links can hand off to provider apps.
+    event.preventDefault();
+    markTouchTooltipInteractionBlock(1600);
+    markTouchTooltipLinkClickSuppress(1200);
+    openTooltipLinkInCurrentTab(linkElement);
+    return true;
+  }
+  // Desktop/mouse: open explicitly in a new tab and never navigate current tab.
+  event.preventDefault();
+  openTooltipLinkInNewTab(linkElement);
+  window.setTimeout(() => {
+    dismissTooltipState();
+  }, 0);
+  return true;
 }
 
 function getTooltipEventPoint(event, fallbackElement) {
@@ -889,27 +1371,71 @@ function getTooltipEventPoint(event, fallbackElement) {
 
 function attachTooltip(cell, text) {
   if (!text) return;
-  if (!isTouch) {
+  if (!useTouchInteractions) {
     cell.addEventListener("mouseenter", (event) => {
+      if (isTooltipPinned()) return;
+      if (hasActiveTooltipCell()) return;
       showTooltip(text, event.clientX, event.clientY);
     });
     cell.addEventListener("mousemove", (event) => {
+      if (isTooltipPinned()) return;
+      if (hasActiveTooltipCell()) return;
       showTooltip(text, event.clientX, event.clientY);
     });
-    cell.addEventListener("mouseleave", hideTooltip);
+    cell.addEventListener("mouseleave", () => {
+      if (isTooltipPinned()) return;
+      if (hasActiveTooltipCell()) return;
+      hideTooltip();
+    });
     return;
   }
-  cell.addEventListener("click", (event) => {
-    if (cell.classList.contains("active")) {
-      cell.classList.remove("active");
-      hideTooltip();
+  const handleTouchCellSelection = (event) => {
+    if (shouldIgnoreTouchCellClick()) {
+      event.stopPropagation();
       return;
     }
-    const active = document.querySelector(".cell.active");
-    if (active) active.classList.remove("active");
+    markTouchTooltipDismissBlock(900);
+    if (cell.classList.contains("active")) {
+      // Keep touch selection stable; outside tap or another cell tap clears it.
+      return;
+    }
+    clearActiveTouchCell();
     cell.classList.add("active");
     const point = getTooltipEventPoint(event, cell);
     showTooltip(text, point.x, point.y);
+  };
+  cell.addEventListener("pointerdown", (event) => {
+    rememberTooltipPointerType(event);
+    markTouchTooltipCellPointerDown(event, cell);
+  });
+  cell.addEventListener("pointerup", (event) => {
+    rememberTooltipPointerType(event);
+    if (!isTouchTooltipActivationEvent(event)) {
+      return;
+    }
+    const wasTap = resolveTouchTooltipCellPointerUpTap(event);
+    markTouchTooltipCellPointerUp(cell, 700, wasTap);
+    if (!wasTap) {
+      event.stopPropagation();
+      return;
+    }
+    handleTouchCellSelection(event);
+  });
+  cell.addEventListener("pointercancel", (event) => {
+    rememberTooltipPointerType(event);
+    if (!isTouchTooltipActivationEvent(event)) {
+      return;
+    }
+    resolveTouchTooltipCellPointerUpTap(event);
+    markTouchTooltipCellPointerUp(cell, 700, false);
+  });
+  cell.addEventListener("click", (event) => {
+    rememberTooltipPointerType(event);
+    if (shouldSuppressTouchTooltipCellClick(event, cell)) {
+      event.stopPropagation();
+      return;
+    }
+    handleTouchCellSelection(event);
   });
 }
 
@@ -1080,6 +1606,12 @@ const FREQUENCY_METRIC_ITEMS = [
   { key: "moving_time", label: "Time" },
   { key: "elevation_gain", label: "Elevation" },
 ];
+const METRIC_LABEL_BY_KEY = Object.freeze({
+  [ACTIVE_DAYS_METRIC_KEY]: "Active Days",
+  distance: "Distance",
+  moving_time: "Time",
+  elevation_gain: "Elevation",
+});
 
 const FREQUENCY_METRIC_UNAVAILABLE_REASON_BY_KEY = {
   distance: "No distance data in current selection.",
@@ -1093,6 +1625,9 @@ function getFrequencyMetricUnavailableReason(metricKey, metricLabel) {
 }
 
 function formatMetricTotal(metricKey, value, units) {
+  if (metricKey === ACTIVE_DAYS_METRIC_KEY) {
+    return formatNumber(value, 0);
+  }
   if (metricKey === "distance") {
     return formatDistance(value, units || { distance: "mi" });
   }
@@ -1185,6 +1720,106 @@ function formatTypeBreakdownLines(breakdown, types) {
   return lines;
 }
 
+function createTooltipTextLine(text) {
+  return [{ text: String(text ?? "") }];
+}
+
+function createTooltipLinkedTypeLine(prefix, label, suffix, href) {
+  const segments = [];
+  if (prefix) segments.push({ text: prefix });
+  if (href) {
+    segments.push({ text: label, href });
+  } else {
+    segments.push({ text: label });
+  }
+  if (suffix) segments.push({ text: suffix });
+  return segments;
+}
+
+function activityTypeOrderForTooltip(typeBreakdown, types) {
+  const typeCounts = typeBreakdown?.typeCounts || {};
+  const selectedTypes = Array.isArray(types) ? types : [];
+  const ordered = [];
+  const seen = new Set();
+
+  selectedTypes.forEach((type) => {
+    if (Number(typeCounts[type] || 0) <= 0) return;
+    ordered.push(type);
+    seen.add(type);
+  });
+
+  Object.keys(typeCounts)
+    .filter((type) => Number(typeCounts[type] || 0) > 0 && !seen.has(type))
+    .sort((a, b) => String(a).localeCompare(String(b)))
+    .forEach((type) => {
+      ordered.push(type);
+    });
+
+  return ordered;
+}
+
+function flattenTooltipActivityLinks(activityLinksByType) {
+  const links = [];
+  Object.values(activityLinksByType || {}).forEach((entries) => {
+    if (!Array.isArray(entries)) return;
+    entries.forEach((entry) => {
+      const href = normalizeTooltipHref(entry?.href);
+      if (!href) return;
+      links.push({ href, name: String(entry?.name || "").trim() });
+    });
+  });
+  return links;
+}
+
+function firstTooltipActivityLink(activityLinksByType, preferredType) {
+  if (!activityLinksByType || typeof activityLinksByType !== "object") {
+    return "";
+  }
+  const preferred = String(preferredType || "").trim();
+  if (preferred && preferred !== "all") {
+    const entries = Array.isArray(activityLinksByType[preferred]) ? activityLinksByType[preferred] : [];
+    if (entries.length === 1) {
+      return normalizeTooltipHref(entries[0]?.href);
+    }
+    return "";
+  }
+  const allLinks = flattenTooltipActivityLinks(activityLinksByType);
+  return allLinks.length === 1 ? String(allLinks[0].href || "") : "";
+}
+
+function formatTypeBreakdownLinesWithLinks(typeBreakdown, types, activityLinksByType) {
+  const lines = [];
+  const orderedTypes = activityTypeOrderForTooltip(typeBreakdown, types);
+  const typeCounts = typeBreakdown?.typeCounts || {};
+
+  orderedTypes.forEach((activityType) => {
+    const count = Number(typeCounts[activityType] || 0);
+    if (count <= 0) return;
+
+    const typeLabel = displayType(activityType);
+    const links = Array.isArray(activityLinksByType?.[activityType])
+      ? activityLinksByType[activityType]
+      : [];
+    const hasSingleLinkedType = count === 1 && links.length === 1 && normalizeTooltipHref(links[0]?.href);
+
+    if (hasSingleLinkedType) {
+      lines.push(createTooltipLinkedTypeLine("", typeLabel, `: ${count}`, links[0].href));
+      return;
+    }
+
+    lines.push(createTooltipTextLine(`${typeLabel}: ${count}`));
+    if (count > 1 && links.length > 1) {
+      links.forEach((entry, index) => {
+        const fallbackName = `${typeLabel} ${index + 1}`;
+        const name = String(entry?.name || "").trim() || fallbackName;
+        lines.push(createTooltipLinkedTypeLine("    - ", name, "", entry?.href || ""));
+      });
+    }
+  });
+
+  return lines;
+}
+
 function getSingleActivityTooltipTypeLabel(typeBreakdown, entry, typeLabels) {
   if (Number(entry?.count || 0) !== 1) {
     return "";
@@ -1226,6 +1861,7 @@ function formatTooltipBreakdown(total, breakdown, types) {
 function buildCombinedTypeDetailsByDate(payload, types, years) {
   const detailsByDate = {};
   const typeBreakdownsByDate = {};
+  const activityLinksByDateType = {};
   const activities = getFilteredActivities(payload, types, years);
 
   activities.forEach((activity) => {
@@ -1245,6 +1881,19 @@ function buildCombinedTypeDetailsByDate(payload, types, years) {
     const activityType = String(activity.type || "");
     const subtypeLabel = getActivitySubtypeLabel(activity);
     addTooltipBreakdownCount(typeBreakdownsByDate[dateStr], activityType, subtypeLabel);
+    const parsedActivityLink = parseStravaActivityUrl(activity?.url || activity?.activity_url);
+    if (parsedActivityLink?.href && activityType) {
+      if (!activityLinksByDateType[dateStr]) {
+        activityLinksByDateType[dateStr] = {};
+      }
+      if (!activityLinksByDateType[dateStr][activityType]) {
+        activityLinksByDateType[dateStr][activityType] = [];
+      }
+      activityLinksByDateType[dateStr][activityType].push({
+        href: parsedActivityLink.href,
+        name: String(activity?.name || activity?.title || "").trim(),
+      });
+    }
     if (isOtherSportsType(activityType)) {
       details.hasOtherSports = true;
       if (subtypeLabel) {
@@ -1282,7 +1931,106 @@ function buildCombinedTypeDetailsByDate(payload, types, years) {
     typeLabelsByDate[dateStr] = labels;
   });
 
-  return { typeLabelsByDate, typeBreakdownsByDate };
+  Object.values(activityLinksByDateType).forEach((linksByType) => {
+    Object.values(linksByType).forEach((activitiesForType) => {
+      activitiesForType.sort((a, b) => {
+        const nameA = String(a?.name || "").trim();
+        const nameB = String(b?.name || "").trim();
+        if (nameA && nameB && nameA !== nameB) {
+          return nameA.localeCompare(nameB);
+        }
+        if (nameA && !nameB) return -1;
+        if (!nameA && nameB) return 1;
+        return String(a?.href || "").localeCompare(String(b?.href || ""));
+      });
+    });
+  });
+
+  return { typeLabelsByDate, typeBreakdownsByDate, activityLinksByDateType };
+}
+
+function centerSummaryTypeCardTailRow(summaryEl) {
+  if (!summaryEl) return;
+  const allCards = Array.from(summaryEl.children || []);
+  if (!allCards.length) return;
+
+  const typeCards = allCards.filter((card) => card.classList.contains("summary-type-card"));
+  typeCards.forEach((card) => {
+    card.style.removeProperty("grid-column");
+    card.style.removeProperty("transform");
+  });
+  if (!typeCards.length) return;
+
+  const styles = getComputedStyle(summaryEl);
+  const gap = parseFloat(styles.columnGap || styles.gap || "0") || 0;
+  const cardRects = allCards.map((card) => card.getBoundingClientRect());
+  const firstRowTop = cardRects[0]?.top;
+  if (!Number.isFinite(firstRowTop)) return;
+
+  const ROW_TOLERANCE = 1;
+  let columns = 0;
+  for (let idx = 0; idx < cardRects.length; idx += 1) {
+    const top = cardRects[idx]?.top;
+    if (!Number.isFinite(top) || Math.abs(top - firstRowTop) > ROW_TOLERANCE) {
+      break;
+    }
+    columns += 1;
+  }
+
+  if (columns <= 3) {
+    summaryEl.style.setProperty("width", "100%");
+    summaryEl.style.setProperty("max-width", "none");
+  } else {
+    summaryEl.style.removeProperty("width");
+    summaryEl.style.removeProperty("max-width");
+  }
+
+  if (columns <= 1) return;
+
+  const totalCardCount = allCards.length;
+  const tailCount = totalCardCount % columns;
+  if (tailCount <= 0) return;
+
+  let trailingTypeCardCount = 0;
+  for (let idx = totalCardCount - 1; idx >= 0; idx -= 1) {
+    if (!allCards[idx].classList.contains("summary-type-card")) {
+      break;
+    }
+    trailingTypeCardCount += 1;
+  }
+  // Only reposition when the incomplete final row is made of type cards.
+  if (trailingTypeCardCount < tailCount) return;
+
+  let columnStep = 0;
+  if (columns >= 2) {
+    const firstLeft = cardRects[0]?.left;
+    for (let idx = 1; idx < columns; idx += 1) {
+      const left = cardRects[idx]?.left;
+      if (!Number.isFinite(firstLeft) || !Number.isFinite(left)) continue;
+      const delta = left - firstLeft;
+      if (delta > 0.5) {
+        columnStep = delta;
+        break;
+      }
+    }
+  }
+  if (!(columnStep > 0.5)) {
+    const fallbackWidth = cardRects[0]?.width || 0;
+    columnStep = fallbackWidth + gap;
+  }
+
+  const startColumn = Math.floor((columns - tailCount) / 2) + 1;
+  const horizontalShift = (columns - tailCount) % 2 === 1 && columnStep > 0
+    ? columnStep / 2
+    : 0;
+
+  for (let idx = 0; idx < tailCount; idx += 1) {
+    const card = allCards[totalCardCount - tailCount + idx];
+    card.style.gridColumn = String(startColumn + idx);
+    if (horizontalShift > 0.5) {
+      card.style.transform = `translateX(${horizontalShift}px)`;
+    }
+  }
 }
 
 function buildSummary(
@@ -1363,7 +2111,12 @@ function buildSummary(
     { title: "Total Activities", value: totals.count.toLocaleString() },
   ];
   if (showActiveDays) {
-    cards.push({ title: "Active Days", value: activeDays.size.toLocaleString() });
+    cards.push({
+      title: "Active Days",
+      value: activeDays.size.toLocaleString(),
+      metricKey: ACTIVE_DAYS_METRIC_KEY,
+      filterable: activeDays.size > 0,
+    });
   }
   cards.push(
     {
@@ -1435,16 +2188,6 @@ function buildSummary(
   });
 
   if (showTypeBreakdown && visibleTypeCardsList.length) {
-    const typeCardCount = visibleTypeCardsList.length;
-    const centerTailCards = typeCardCount > 5 ? typeCardCount % 5 : 0;
-    summary.classList.toggle("summary-center-two-types", visibleTypeCardsList.length === 2);
-    summary.classList.toggle("summary-center-three-types", visibleTypeCardsList.length === 3);
-    summary.classList.toggle("summary-center-four-types", visibleTypeCardsList.length === 4);
-    summary.classList.toggle("summary-center-tail-one", centerTailCards === 1);
-    summary.classList.toggle("summary-center-tail-two", centerTailCards === 2);
-    summary.classList.toggle("summary-center-tail-three", centerTailCards === 3);
-    summary.classList.toggle("summary-center-tail-four", centerTailCards === 4);
-
     visibleTypeCardsList.forEach((type) => {
       const typeCard = document.createElement("button");
       typeCard.type = "button";
@@ -1483,6 +2226,7 @@ function buildSummary(
       }
       summary.appendChild(typeCard);
     });
+    centerSummaryTypeCardTailRow(summary);
   }
 }
 
@@ -1494,7 +2238,9 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
   const metricHeatmapKey = typeof options.metricHeatmapKey === "string"
     ? options.metricHeatmapKey
     : null;
-  const metricHeatmapMax = metricHeatmapKey
+  const metricHeatmapMax = metricHeatmapKey === ACTIVE_DAYS_METRIC_KEY
+    ? 1
+    : metricHeatmapKey
     ? Number(options.metricMaxByKey?.[metricHeatmapKey] || 0)
     : 0;
   const metricHeatmapActive = Boolean(metricHeatmapKey) && metricHeatmapMax > 0;
@@ -1565,7 +2311,9 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
 
     const filled = (entry.count || 0) > 0;
     if (metricHeatmapActive) {
-      const metricValue = Number(entry[metricHeatmapKey] || 0);
+      const metricValue = metricHeatmapKey === ACTIVE_DAYS_METRIC_KEY
+        ? (filled ? 1 : 0)
+        : Number(entry[metricHeatmapKey] || 0);
       cell.style.backgroundImage = "none";
       cell.style.background = metricValue > 0
         ? heatColor(metricHeatmapColor, metricValue, metricHeatmapMax)
@@ -1592,27 +2340,35 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
 
     const typeBreakdown = type === "all" ? options.typeBreakdownsByDate?.[dateStr] : null;
     const typeLabels = type === "all" ? options.typeLabelsByDate?.[dateStr] : null;
+    const activityLinksByType = options.activityLinksByDateType?.[dateStr] || {};
     const singleTypeLabel = type === "all"
       ? getSingleActivityTooltipTypeLabel(typeBreakdown, entry, typeLabels)
+      : (Number(entry.count || 0) === 1 ? displayType(type) : "");
+    const singleActivityLink = Number(entry.count || 0) === 1
+      ? firstTooltipActivityLink(activityLinksByType, type)
       : "";
-    const lines = [
-      dateStr,
-      singleTypeLabel
-        ? `1 ${singleTypeLabel} Activity`
-        : formatActivityCountLabel(entry.count, type === "all" ? [] : [type]),
-    ];
+    const lines = [createTooltipTextLine(dateStr)];
+    if (singleTypeLabel) {
+      lines.push(createTooltipLinkedTypeLine("1 ", singleTypeLabel, " Activity", singleActivityLink));
+    } else {
+      lines.push(createTooltipTextLine(formatActivityCountLabel(entry.count, type === "all" ? [] : [type])));
+    }
 
     const showDistanceElevation = (entry.distance || 0) > 0 || (entry.elevation_gain || 0) > 0;
 
     if (type === "all") {
       if (!singleTypeLabel) {
-        const breakdownLines = formatTypeBreakdownLines(typeBreakdown, options.selectedTypes || []);
+        const breakdownLines = formatTypeBreakdownLinesWithLinks(
+          typeBreakdown,
+          options.selectedTypes || [],
+          activityLinksByType,
+        );
         if (breakdownLines.length) {
           lines.push(...breakdownLines);
         } else if (Array.isArray(typeLabels) && typeLabels.length) {
-          lines.push(`Types: ${typeLabels.join(", ")}`);
+          lines.push(createTooltipTextLine(`Types: ${typeLabels.join(", ")}`));
         } else if (entry.types && entry.types.length) {
-          lines.push(`Types: ${entry.types.map(displayType).join(", ")}`);
+          lines.push(createTooltipTextLine(`Types: ${entry.types.map(displayType).join(", ")}`));
         }
       }
     }
@@ -1624,32 +2380,96 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
       const elevation = units.elevation === "m"
         ? `${Math.round(entry.elevation_gain)} m`
         : `${Math.round(entry.elevation_gain * 3.28084)} ft`;
-      lines.push(`Distance: ${distance}`);
-      lines.push(`Elevation: ${elevation}`);
+      lines.push(createTooltipTextLine(`Distance: ${distance}`));
+      lines.push(createTooltipTextLine(`Elevation: ${elevation}`));
     }
 
-    lines.push(`Duration: ${duration}`);
-    const tooltipText = lines.join("\n");
-    if (!isTouch) {
+    lines.push(createTooltipTextLine(`Duration: ${duration}`));
+    const tooltipContent = { lines };
+    const canPinTooltip = Boolean(flattenTooltipActivityLinks(activityLinksByType).length);
+    if (!useTouchInteractions) {
       cell.addEventListener("mouseenter", (event) => {
-        showTooltip(tooltipText, event.clientX, event.clientY);
+        if (isTooltipPinned()) return;
+        if (hasActiveTooltipCell()) return;
+        showTooltip(tooltipContent, event.clientX, event.clientY);
       });
       cell.addEventListener("mousemove", (event) => {
-        showTooltip(tooltipText, event.clientX, event.clientY);
+        if (isTooltipPinned()) return;
+        if (hasActiveTooltipCell()) return;
+        showTooltip(tooltipContent, event.clientX, event.clientY);
       });
-      cell.addEventListener("mouseleave", hideTooltip);
+      cell.addEventListener("mouseleave", () => {
+        if (isTooltipPinned()) return;
+        if (hasActiveTooltipCell()) return;
+        hideTooltip();
+      });
+      if (canPinTooltip) {
+        cell.addEventListener("click", (event) => {
+          if (pinnedTooltipCell === cell) {
+            clearPinnedTooltipCell();
+            hideTooltip();
+            return;
+          }
+          clearPinnedTooltipCell();
+          pinnedTooltipCell = cell;
+          cell.classList.add("active");
+          const point = getTooltipEventPoint(event, cell);
+          showTooltip(tooltipContent, point.x, point.y, { interactive: true });
+        });
+      } else {
+        cell.addEventListener("click", () => {
+          clearPinnedTooltipCell();
+        });
+      }
     } else {
-      cell.addEventListener("click", (event) => {
+      const handleTouchCellSelection = (event) => {
+        if (shouldIgnoreTouchCellClick()) {
+          event.stopPropagation();
+          return;
+        }
+        markTouchTooltipDismissBlock(900);
         if (cell.classList.contains("active")) {
-          cell.classList.remove("active");
-          hideTooltip();
+          // Keep touch selection stable; outside tap or another cell tap clears it.
           return;
         }
         const active = grid.querySelector(".cell.active");
         if (active) active.classList.remove("active");
         cell.classList.add("active");
         const point = getTooltipEventPoint(event, cell);
-        showTooltip(tooltipText, point.x, point.y);
+        showTooltip(tooltipContent, point.x, point.y);
+      };
+      cell.addEventListener("pointerdown", (event) => {
+        rememberTooltipPointerType(event);
+        markTouchTooltipCellPointerDown(event, cell);
+      });
+      cell.addEventListener("pointerup", (event) => {
+        rememberTooltipPointerType(event);
+        if (!isTouchTooltipActivationEvent(event)) {
+          return;
+        }
+        const wasTap = resolveTouchTooltipCellPointerUpTap(event);
+        markTouchTooltipCellPointerUp(cell, 700, wasTap);
+        if (!wasTap) {
+          event.stopPropagation();
+          return;
+        }
+        handleTouchCellSelection(event);
+      });
+      cell.addEventListener("pointercancel", (event) => {
+        rememberTooltipPointerType(event);
+        if (!isTouchTooltipActivationEvent(event)) {
+          return;
+        }
+        resolveTouchTooltipCellPointerUpTap(event);
+        markTouchTooltipCellPointerUp(cell, 700, false);
+      });
+      cell.addEventListener("click", (event) => {
+        rememberTooltipPointerType(event);
+        if (shouldSuppressTouchTooltipCellClick(event, cell)) {
+          event.stopPropagation();
+          return;
+        }
+        handleTouchCellSelection(event);
       });
     }
 
@@ -1756,7 +2576,7 @@ function attachSingleSelectCardToggle(button, options = {}) {
       onToggleComplete();
     }
   });
-  if (!isTouch) {
+  if (!useTouchInteractions) {
     button.addEventListener("pointerleave", () => {
       button.classList.remove(clearedClassName);
     });
@@ -1773,6 +2593,7 @@ function buildCard(type, year, aggregates, units, options = {}) {
   const colors = type === "all" ? DEFAULT_COLORS : getColors(type);
   const metricHeatmapColor = options.metricHeatmapColor || (type === "all" ? MULTI_TYPE_COLOR : colors[4]);
   const metricMaxByKey = {
+    [ACTIVE_DAYS_METRIC_KEY]: 0,
     distance: 0,
     moving_time: 0,
     elevation_gain: 0,
@@ -1808,6 +2629,7 @@ function buildCard(type, year, aggregates, units, options = {}) {
     metricMaxByKey.moving_time = Math.max(metricMaxByKey.moving_time, Number(entry.moving_time || 0));
     metricMaxByKey.elevation_gain = Math.max(metricMaxByKey.elevation_gain, Number(entry.elevation_gain || 0));
   });
+  metricMaxByKey[ACTIVE_DAYS_METRIC_KEY] = totals.count > 0 ? 1 : 0;
 
   const renderHeatmap = () => {
     const nextHeatmapArea = buildHeatmapArea(aggregates, year, units, colors, type, layout, {
@@ -1824,6 +2646,9 @@ function buildCard(type, year, aggregates, units, options = {}) {
 
   const metricItems = buildYearMetricStatItems(totals, units);
   const filterableMetricKeys = getFilterableKeys(metricItems);
+  if (totals.count > 0) {
+    filterableMetricKeys.push(ACTIVE_DAYS_METRIC_KEY);
+  }
   activeMetricKey = normalizeSingleSelectKey(activeMetricKey, filterableMetricKeys);
   const metricButtons = new Map();
   const reportYearMetricState = (source) => {
@@ -1883,24 +2708,17 @@ function buildCard(type, year, aggregates, units, options = {}) {
   return card;
 }
 
-function buildEmptyYearCard(year) {
+function buildEmptySelectionCard() {
   const card = document.createElement("div");
-  card.className = "card card-empty-year";
+  card.className = "card card-empty-selection";
   const body = document.createElement("div");
-  body.className = "card-empty-year-body";
-  const emptyMessage = `No activities in ${year}`;
-
-  const emptyStat = buildSideStatCard(emptyMessage, "", {
-    className: "card-stat card-empty-year-stat",
+  body.className = "card-empty-selection-body";
+  const emptyStat = buildSideStatCard("No activities for current filters", "", {
+    className: "card-stat card-empty-selection-stat",
   });
   body.appendChild(emptyStat);
   card.appendChild(body);
   return card;
-}
-
-function buildEmptySelectionCard(_types, years) {
-  const year = Array.isArray(years) && years.length ? years[0] : 0;
-  return buildEmptyYearCard(year);
 }
 
 function buildLabeledCardRow(label, card, kind) {
@@ -2097,6 +2915,7 @@ function buildStatsOverview(payload, types, years, color, options = {}) {
         monthIndex: date.getMonth(),
         weekIndex: weekOfYear(date),
         hour: hasHour ? hourValue : null,
+        active_days: 1,
         distance: perActivityMetricValue("distance"),
         moving_time: perActivityMetricValue("moving_time"),
         elevation_gain: perActivityMetricValue("elevation_gain"),
@@ -2104,13 +2923,8 @@ function buildStatsOverview(payload, types, years, color, options = {}) {
     })
     .filter(Boolean);
 
-  const oldestActivityYear = activities.reduce(
-    (oldest, activity) => Math.min(oldest, activity.year),
-    Number.POSITIVE_INFINITY,
-  );
-  const visibleYearsDesc = Number.isFinite(oldestActivityYear)
-    ? yearsDesc.filter((year) => Number(year) >= oldestActivityYear)
-    : yearsDesc.slice();
+  const activityYears = new Set(activities.map((activity) => Number(activity.year)));
+  const visibleYearsDesc = yearsDesc.filter((year) => activityYears.has(Number(year)));
   const yearIndex = new Map();
   visibleYearsDesc.forEach((year, index) => {
     yearIndex.set(Number(year), index);
@@ -2143,7 +2957,11 @@ function buildStatsOverview(payload, types, years, color, options = {}) {
       }
       const row = yearIndex.get(activity.year);
       if (row === undefined) return;
-      const weight = metricKey ? Number(activity[metricKey] || 0) : 1;
+      const weight = metricKey === ACTIVE_DAYS_METRIC_KEY
+        ? Number(activity.active_days || 0)
+        : metricKey
+        ? Number(activity[metricKey] || 0)
+        : 1;
 
       activityCount += 1;
       dayMatrix[row][activity.dayIndex] += weight;
@@ -2196,6 +3014,7 @@ function buildStatsOverview(payload, types, years, color, options = {}) {
 
   const baseData = buildFrequencyData();
   const metricTotals = {
+    [ACTIVE_DAYS_METRIC_KEY]: activities.reduce((sum, activity) => sum + Number(activity.active_days || 0), 0),
     distance: activities.reduce((sum, activity) => sum + Number(activity.distance || 0), 0),
     moving_time: activities.reduce((sum, activity) => sum + Number(activity.moving_time || 0), 0),
     elevation_gain: activities.reduce((sum, activity) => sum + Number(activity.elevation_gain || 0), 0),
@@ -2207,6 +3026,9 @@ function buildStatsOverview(payload, types, years, color, options = {}) {
   }));
   const metricButtons = new Map();
   const filterableMetricKeys = getFilterableKeys(metricItems);
+  if (Number(metricTotals[ACTIVE_DAYS_METRIC_KEY] || 0) > 0) {
+    filterableMetricKeys.push(ACTIVE_DAYS_METRIC_KEY);
+  }
   activeMetricKey = normalizeSingleSelectKey(activeMetricKey, filterableMetricKeys);
   const reportMetricState = (source) => {
     if (!onMetricStateChange) return;
@@ -2230,7 +3052,7 @@ function buildStatsOverview(payload, types, years, color, options = {}) {
       });
     }
     reportMetricState("init");
-    return buildEmptySelectionCard(types, yearsDesc);
+    return buildEmptySelectionCard();
   }
 
   const dayPanel = buildStatPanel("");
@@ -2327,9 +3149,7 @@ function buildStatsOverview(payload, types, years, color, options = {}) {
   const renderFrequencyGraphs = () => {
     const activeFact = factItems.find((item) => item.key === activeFactKey) || null;
     const matrixData = buildFrequencyData(activeFact?.filter, activeMetricKey);
-    const metricLabel = activeMetricKey
-      ? FREQUENCY_METRIC_ITEMS.find((item) => item.key === activeMetricKey)?.label || "Metric"
-      : "";
+    const metricLabel = activeMetricKey ? (METRIC_LABEL_BY_KEY[activeMetricKey] || "Metric") : "";
     const formatTooltipValue = (value) => {
       if (!activeMetricKey) return "";
       return `${metricLabel}: ${formatMetricTotal(activeMetricKey, value, units)}`;
@@ -2570,10 +3390,6 @@ function renderLoadError(error) {
   const detail = error && typeof error.message === "string" && error.message
     ? error.message
     : "Unexpected error.";
-
-  if (updated) {
-    updated.textContent = "Last updated: unavailable";
-  }
   if (summary) {
     summary.innerHTML = "";
   }
@@ -2602,7 +3418,8 @@ async function init() {
   syncRepoLink();
   syncFooterHostedLink();
   syncStravaProfileLink();
-  syncDesktopHeaderLinkPlacement();
+  syncProfileLinkNavigationTarget();
+  syncHeaderLinkPlacement();
   const resp = await fetch("data.json");
   if (!resp.ok) {
     throw new Error(`Failed to load data.json (${resp.status})`);
@@ -2624,9 +3441,16 @@ async function init() {
     || payload.repository,
   );
   syncStravaProfileLink(
-    payload.strava_profile_url
+    payload.profile_url
+    || payload.profileUrl
+    || payload.provider_profile_url
+    || payload.garmin_profile_url
+    || payload.garminProfileUrl
+    || payload.garmin_profile
+    || payload.strava_profile_url
     || payload.stravaProfileUrl
     || payload.strava_profile,
+    payload.source || payload.provider,
   );
   setDashboardTitle(payload.source);
   TYPE_META = payload.type_meta || {};
@@ -2636,19 +3460,6 @@ async function init() {
       TYPE_META[type] = { label: prettifyType(type), accent: fallbackColor(type) };
     }
   });
-
-  if (payload.generated_at) {
-    const updatedAt = new Date(payload.generated_at);
-    if (!Number.isNaN(updatedAt.getTime())) {
-      updated.textContent = `Last updated: ${updatedAt.toLocaleString([], {
-        year: "numeric",
-        month: "numeric",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      })}`;
-    }
-  }
 
   const typeOptions = [
     { value: "all", label: "All Activities" },
@@ -2861,18 +3672,15 @@ async function init() {
     return result;
   }
 
-  function trackYearMetricAvailability(year, hasData, visibleYearsSet, filterableMetricsByYearMap) {
-    if (hasData) {
-      visibleYearsSet.add(year);
-      return;
-    }
-    filterableMetricsByYearMap.set(Number(year), new Set());
+  function trackYearMetricAvailability(year, visibleYearsSet) {
+    visibleYearsSet.add(Number(year));
   }
 
   function pruneYearMetricSelectionsByFilterability(selectionByYear, filterableMetricsByYearMap) {
-    filterableMetricsByYearMap.forEach((filterableSet, year) => {
+    Array.from(selectionByYear.keys()).forEach((year) => {
+      const filterableSet = filterableMetricsByYearMap.get(year);
       const selectedMetricKey = selectionByYear.get(year) || null;
-      if (selectedMetricKey && !filterableSet.has(selectedMetricKey)) {
+      if (!filterableSet || (selectedMetricKey && !filterableSet.has(selectedMetricKey))) {
         selectionByYear.delete(year);
       }
     });
@@ -3276,6 +4084,8 @@ async function init() {
     if (menuOnly) {
       return;
     }
+    clearPinnedTooltipCell();
+    hideTooltip();
 
     const years = selectedYearsList(visibleYears);
     years.sort((a, b) => b - a);
@@ -3343,14 +4153,18 @@ async function init() {
     if (heatmaps) {
       heatmaps.innerHTML = "";
       const showMoreStats = true;
+      const {
+        typeLabelsByDate,
+        typeBreakdownsByDate,
+        activityLinksByDateType,
+      } = buildCombinedTypeDetailsByDate(payload, types, years);
       if (showCombinedTypes) {
         const section = document.createElement("div");
         section.className = "type-section";
         const list = document.createElement("div");
         list.className = "type-list";
         const yearTotals = getTypesYearTotals(payload, types, years);
-        const cardYears = years.slice();
-        const { typeLabelsByDate, typeBreakdownsByDate } = buildCombinedTypeDetailsByDate(payload, types, cardYears);
+        const cardYears = years.filter((year) => (yearTotals.get(year) || 0) > 0);
         const combinedSelectionKey = `combined:${types.join("|")}`;
         if (showMoreStats) {
           const frequencyCard = buildStatsOverview(payload, types, cardYears, frequencyCardColor, {
@@ -3372,7 +4186,6 @@ async function init() {
         cardYears.forEach((year) => {
           const yearData = payload.aggregates?.[String(year)] || {};
           const aggregates = combineYearAggregates(yearData, types);
-          const total = yearTotals.get(year) || 0;
           const colorForEntry = (entry) => {
             if (!entry.types || entry.types.length === 0) {
               return {
@@ -3391,32 +4204,26 @@ async function init() {
               backgroundImage: buildMultiTypeBackgroundImage(entry.types),
             };
           };
-          const card = total > 0
-            ? buildCard(
-              "all",
-              year,
-              aggregates,
-              currentUnits,
-              {
-                colorForEntry,
-                metricHeatmapColor: frequencyCardColor,
-                weekStart: setupWeekStart,
-                cardMetricYear: year,
-                initialMetricKey: getInitialYearMetricKey(year),
-                onYearMetricStateChange,
-                selectedTypes: types,
-                typeBreakdownsByDate,
-                typeLabelsByDate,
-              },
-            )
-            : buildEmptyYearCard(year);
-          setCardScrollKey(card, `${combinedSelectionKey}:year:${year}`);
-          trackYearMetricAvailability(
+          const card = buildCard(
+            "all",
             year,
-            total > 0,
-            nextVisibleYearMetricYears,
-            nextFilterableYearMetricsByYear,
+            aggregates,
+            currentUnits,
+            {
+              colorForEntry,
+              metricHeatmapColor: frequencyCardColor,
+              weekStart: setupWeekStart,
+              cardMetricYear: year,
+              initialMetricKey: getInitialYearMetricKey(year),
+              onYearMetricStateChange,
+              selectedTypes: types,
+              typeBreakdownsByDate,
+              typeLabelsByDate,
+              activityLinksByDateType,
+            },
           );
+          setCardScrollKey(card, `${combinedSelectionKey}:year:${year}`);
+          trackYearMetricAvailability(year, nextVisibleYearMetricYears);
           list.appendChild(buildLabeledCardRow(String(year), card, "year"));
         });
         section.appendChild(list);
@@ -3429,7 +4236,7 @@ async function init() {
           const list = document.createElement("div");
           list.className = "type-list";
           const yearTotals = getTypeYearTotals(payload, type, years);
-          const cardYears = years.slice();
+          const cardYears = years.filter((year) => (yearTotals.get(year) || 0) > 0);
           const typeCardKey = `type:${type}`;
           if (showMoreStats) {
             const frequencyCard = buildStatsOverview(payload, [type], cardYears, frequencyCardColor, {
@@ -3450,23 +4257,16 @@ async function init() {
           }
           cardYears.forEach((year) => {
             const aggregates = payload.aggregates?.[String(year)]?.[type] || {};
-            const total = yearTotals.get(year) || 0;
-            const card = total > 0
-              ? buildCard(type, year, aggregates, currentUnits, {
-                metricHeatmapColor: getColors(type)[4],
-                weekStart: setupWeekStart,
-                cardMetricYear: year,
-                initialMetricKey: getInitialYearMetricKey(year),
-                onYearMetricStateChange,
-              })
-              : buildEmptyYearCard(year);
+            const card = buildCard(type, year, aggregates, currentUnits, {
+              metricHeatmapColor: getColors(type)[4],
+              weekStart: setupWeekStart,
+              cardMetricYear: year,
+              initialMetricKey: getInitialYearMetricKey(year),
+              onYearMetricStateChange,
+              activityLinksByDateType,
+            });
             setCardScrollKey(card, `${typeCardKey}:year:${year}`);
-            trackYearMetricAvailability(
-              year,
-              total > 0,
-              nextVisibleYearMetricYears,
-              nextFilterableYearMetricsByYear,
-            );
+            trackYearMetricAvailability(year, nextVisibleYearMetricYears);
             list.appendChild(buildLabeledCardRow(String(year), card, "year"));
           });
           if (!list.childElementCount) {
@@ -3706,6 +4506,7 @@ async function init() {
   }
 
   window.addEventListener("resize", () => {
+    requestSummaryTypeTailCentering();
     if (resizeTimer) {
       window.clearTimeout(resizeTimer);
     }
@@ -3719,33 +4520,134 @@ async function init() {
       }
       lastViewportWidth = width;
       lastIsNarrowLayout = isNarrowLayout;
-      syncDesktopHeaderLinkPlacement();
+      syncProfileLinkNavigationTarget();
+      syncHeaderLinkPlacement();
       resetPersistentSideStatSizing();
       update();
     }, 150);
   });
 
-  if (isTouch) {
+  if (!useTouchInteractions) {
+    tooltip.addEventListener("click", (event) => {
+      handleTooltipLinkActivation(event);
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+      if (!isTooltipPinned()) return;
+      const target = event.target;
+      if (tooltip.contains(target)) {
+        return;
+      }
+      if (pinnedTooltipCell && pinnedTooltipCell.contains(target)) {
+        return;
+      }
+      dismissTooltipState();
+    });
+
+    const dismissTooltipOnDesktopViewportShift = () => {
+      if (!isTooltipPinned()) return;
+      dismissTooltipState();
+    };
+
+    document.addEventListener(
+      "scroll",
+      dismissTooltipOnDesktopViewportShift,
+      { passive: true, capture: true },
+    );
+
+    window.addEventListener(
+      "scroll",
+      dismissTooltipOnDesktopViewportShift,
+      { passive: true },
+    );
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") {
+        dismissTooltipState();
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      dismissTooltipState();
+    });
+  } else {
+    tooltip.addEventListener(
+      "touchstart",
+      (event) => {
+        rememberTooltipPointerType(event);
+        event.stopPropagation();
+        markTouchTooltipInteractionBlock(1200);
+      },
+      { passive: true },
+    );
+    tooltip.addEventListener("pointerdown", (event) => {
+      rememberTooltipPointerType(event);
+      event.stopPropagation();
+      if (isTouchTooltipActivationEvent(event)) {
+        markTouchTooltipInteractionBlock(1200);
+      }
+    });
+    tooltip.addEventListener("click", (event) => {
+      if (!handleTooltipLinkActivation(event)) {
+        markTouchTooltipInteractionBlock(1200);
+        event.stopPropagation();
+        return;
+      }
+    });
+
     document.addEventListener("pointerdown", (event) => {
       if (!tooltip.classList.contains("visible")) return;
       const target = event.target;
       if (tooltip.contains(target)) {
-        hideTooltip();
-        const active = document.querySelector(".cell.active");
-        if (active) active.classList.remove("active");
         return;
       }
       if (!target.classList.contains("cell")) {
-        hideTooltip();
-        const active = document.querySelector(".cell.active");
-        if (active) active.classList.remove("active");
+        dismissTooltipState();
       }
     });
 
-    const dismissTooltipOnTouchScroll = () => {
-      hideTooltip();
-      const active = document.querySelector(".cell.active");
-      if (active) active.classList.remove("active");
+    let lastTouchViewportScrollX = window.scrollX || window.pageXOffset || 0;
+    let lastTouchViewportScrollY = window.scrollY || window.pageYOffset || 0;
+
+    const dismissTooltipOnTouchScroll = (event) => {
+      const scrollTarget = event?.target;
+      const targetElement = scrollTarget?.nodeType === Node.TEXT_NODE
+        ? scrollTarget.parentElement
+        : scrollTarget;
+      const cardScrollEvent = Boolean(
+        targetElement
+        && targetElement !== document
+        && targetElement !== window
+        && typeof targetElement.closest === "function"
+        && targetElement.closest(".card"),
+      );
+
+      if (cardScrollEvent && tooltip.classList.contains("visible")) {
+        dismissTooltipState();
+        return;
+      }
+
+      const currentScrollX = window.scrollX || window.pageXOffset || 0;
+      const currentScrollY = window.scrollY || window.pageYOffset || 0;
+      const viewportMoved = Math.abs(currentScrollX - lastTouchViewportScrollX) >= 2
+        || Math.abs(currentScrollY - lastTouchViewportScrollY) >= 2;
+      lastTouchViewportScrollX = currentScrollX;
+      lastTouchViewportScrollY = currentScrollY;
+
+      if (!tooltip.classList.contains("visible")) {
+        return;
+      }
+
+      // Always dismiss on actual page movement so touch pan/scroll never leaves stale tooltips.
+      if (viewportMoved) {
+        dismissTooltipState();
+        return;
+      }
+
+      if (nowMs() <= touchTooltipInteractionBlockUntil || shouldIgnoreTouchTooltipDismiss()) {
+        return;
+      }
+      dismissTooltipState();
     };
 
     document.addEventListener(
@@ -3767,6 +4669,16 @@ async function init() {
       },
       { passive: true },
     );
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") {
+        dismissTooltipState();
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      dismissTooltipState();
+    });
   }
 }
 
