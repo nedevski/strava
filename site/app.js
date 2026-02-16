@@ -370,7 +370,7 @@ function parseStravaProfileUrl(value) {
 
   return {
     href: `${parsed.protocol}//${parsed.host}${path}${parsed.search}`,
-    label: "Strava Profile",
+    label: "Strava",
   };
 }
 

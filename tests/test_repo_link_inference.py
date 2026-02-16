@@ -400,7 +400,7 @@ class RepoLinkInferenceTests(unittest.TestCase):
             result,
             {
                 "href": "https://www.strava.com/athletes/12345",
-                "label": "Strava Profile",
+                "label": "Strava",
             },
         )
 
