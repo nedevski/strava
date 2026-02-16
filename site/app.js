@@ -1017,19 +1017,19 @@ function getTooltipEventPoint(event, fallbackElement) {
 
 function attachTooltip(cell, text) {
   if (!text) return;
+  cell.addEventListener("mouseenter", (event) => {
+    if (isTooltipPinned()) return;
+    showTooltip(text, event.clientX, event.clientY);
+  });
+  cell.addEventListener("mousemove", (event) => {
+    if (isTooltipPinned()) return;
+    showTooltip(text, event.clientX, event.clientY);
+  });
+  cell.addEventListener("mouseleave", () => {
+    if (isTooltipPinned()) return;
+    hideTooltip();
+  });
   if (!isTouch) {
-    cell.addEventListener("mouseenter", (event) => {
-      if (isTooltipPinned()) return;
-      showTooltip(text, event.clientX, event.clientY);
-    });
-    cell.addEventListener("mousemove", (event) => {
-      if (isTooltipPinned()) return;
-      showTooltip(text, event.clientX, event.clientY);
-    });
-    cell.addEventListener("mouseleave", () => {
-      if (isTooltipPinned()) return;
-      hideTooltip();
-    });
     return;
   }
   cell.addEventListener("click", (event) => {
@@ -1993,19 +1993,19 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
     lines.push(createTooltipTextLine(`Duration: ${duration}`));
     const tooltipContent = { lines };
     const canPinTooltip = Boolean(flattenTooltipActivityLinks(activityLinksByType).length);
+    cell.addEventListener("mouseenter", (event) => {
+      if (isTooltipPinned()) return;
+      showTooltip(tooltipContent, event.clientX, event.clientY);
+    });
+    cell.addEventListener("mousemove", (event) => {
+      if (isTooltipPinned()) return;
+      showTooltip(tooltipContent, event.clientX, event.clientY);
+    });
+    cell.addEventListener("mouseleave", () => {
+      if (isTooltipPinned()) return;
+      hideTooltip();
+    });
     if (!isTouch) {
-      cell.addEventListener("mouseenter", (event) => {
-        if (isTooltipPinned()) return;
-        showTooltip(tooltipContent, event.clientX, event.clientY);
-      });
-      cell.addEventListener("mousemove", (event) => {
-        if (isTooltipPinned()) return;
-        showTooltip(tooltipContent, event.clientX, event.clientY);
-      });
-      cell.addEventListener("mouseleave", () => {
-        if (isTooltipPinned()) return;
-        hideTooltip();
-      });
       if (canPinTooltip) {
         cell.addEventListener("click", (event) => {
           if (pinnedTooltipCell === cell) {
