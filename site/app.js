@@ -70,10 +70,17 @@ let persistentSideStatCardWidth = 0;
 let persistentSideStatCardMinHeight = 0;
 let pinnedTooltipCell = null;
 let touchTooltipInteractionBlockUntil = 0;
+let touchTooltipDismissBlockUntil = 0;
 let lastTooltipPointerType = "";
 let touchTooltipLinkClickSuppressUntil = 0;
+let touchTooltipRecentPointerUpCell = null;
+let touchTooltipRecentPointerUpUntil = 0;
+let touchTooltipRecentPointerUpWasTap = true;
+let touchTooltipPointerDownState = null;
 const PROFILE_PROVIDER_STRAVA = "strava";
 const PROFILE_PROVIDER_GARMIN = "garmin";
+const TOUCH_TOOLTIP_TAP_MAX_MOVE_PX = 10;
+const TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX = 2;
 
 function resetPersistentSideStatSizing() {
   persistentSideStatCardWidth = 0;
@@ -1122,6 +1129,17 @@ function nowMs() {
     : Date.now();
 }
 
+function markTouchTooltipDismissBlock(durationMs = 450) {
+  if (!useTouchInteractions) return;
+  const blockUntil = nowMs() + Math.max(0, Number(durationMs) || 0);
+  touchTooltipDismissBlockUntil = Math.max(touchTooltipDismissBlockUntil, blockUntil);
+}
+
+function shouldIgnoreTouchTooltipDismiss() {
+  if (!useTouchInteractions) return false;
+  return nowMs() <= touchTooltipDismissBlockUntil;
+}
+
 function markTouchTooltipLinkClickSuppress(durationMs = 1200) {
   if (!useTouchInteractions) return;
   const blockUntil = nowMs() + Math.max(0, Number(durationMs) || 0);
@@ -1133,10 +1151,102 @@ function shouldSuppressTouchTooltipLinkClick() {
   return nowMs() <= touchTooltipLinkClickSuppressUntil;
 }
 
+function markTouchTooltipCellPointerUp(cell, durationMs = 700, wasTap = true) {
+  if (!useTouchInteractions) return;
+  if (!cell) return;
+  touchTooltipRecentPointerUpCell = cell;
+  touchTooltipRecentPointerUpUntil = nowMs() + Math.max(0, Number(durationMs) || 0);
+  touchTooltipRecentPointerUpWasTap = Boolean(wasTap);
+}
+
+function shouldSuppressTouchTooltipCellClick(event, cell) {
+  if (!useTouchInteractions) return false;
+  if (!cell) return false;
+  if (!isTouchTooltipActivationEvent(event)) return false;
+  if (nowMs() > touchTooltipRecentPointerUpUntil) {
+    return false;
+  }
+  if (!touchTooltipRecentPointerUpWasTap) {
+    return true;
+  }
+  if (!touchTooltipRecentPointerUpCell || touchTooltipRecentPointerUpCell !== cell) {
+    return false;
+  }
+  return true;
+}
+
+function markTouchTooltipCellPointerDown(event, cell) {
+  if (!useTouchInteractions) return;
+  if (!cell) return;
+  if (!isTouchTooltipActivationEvent(event)) return;
+  const pointerId = Number(event?.pointerId);
+  const clientX = Number(event?.clientX);
+  const clientY = Number(event?.clientY);
+  const scrollHost = typeof cell.closest === "function"
+    ? cell.closest(".card")
+    : null;
+  touchTooltipPointerDownState = {
+    pointerId: Number.isFinite(pointerId) ? pointerId : null,
+    clientX: Number.isFinite(clientX) ? clientX : null,
+    clientY: Number.isFinite(clientY) ? clientY : null,
+    viewportX: window.scrollX || window.pageXOffset || 0,
+    viewportY: window.scrollY || window.pageYOffset || 0,
+    scrollHost,
+    scrollLeft: scrollHost ? Number(scrollHost.scrollLeft || 0) : 0,
+    scrollTop: scrollHost ? Number(scrollHost.scrollTop || 0) : 0,
+  };
+}
+
+function wasTouchTooltipCellTapGesture(event) {
+  const state = touchTooltipPointerDownState;
+  if (!state) {
+    return true;
+  }
+
+  const pointerId = Number(event?.pointerId);
+  if (state.pointerId !== null && Number.isFinite(pointerId) && pointerId !== state.pointerId) {
+    return false;
+  }
+
+  const clientX = Number(event?.clientX);
+  const clientY = Number(event?.clientY);
+  const movedByPointer = Number.isFinite(clientX)
+    && Number.isFinite(clientY)
+    && state.clientX !== null
+    && state.clientY !== null
+    && (
+      Math.abs(clientX - state.clientX) > TOUCH_TOOLTIP_TAP_MAX_MOVE_PX
+      || Math.abs(clientY - state.clientY) > TOUCH_TOOLTIP_TAP_MAX_MOVE_PX
+    );
+
+  const viewportX = window.scrollX || window.pageXOffset || 0;
+  const viewportY = window.scrollY || window.pageYOffset || 0;
+  const viewportMoved = Math.abs(viewportX - state.viewportX) > TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX
+    || Math.abs(viewportY - state.viewportY) > TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX;
+
+  let scrollHostMoved = false;
+  if (state.scrollHost && state.scrollHost.isConnected) {
+    const hostScrollLeft = Number(state.scrollHost.scrollLeft || 0);
+    const hostScrollTop = Number(state.scrollHost.scrollTop || 0);
+    scrollHostMoved = Math.abs(hostScrollLeft - state.scrollLeft) > TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX
+      || Math.abs(hostScrollTop - state.scrollTop) > TOUCH_TOOLTIP_TAP_MAX_SCROLL_PX;
+  }
+
+  return !(movedByPointer || viewportMoved || scrollHostMoved);
+}
+
+function resolveTouchTooltipCellPointerUpTap(event) {
+  if (!useTouchInteractions) return true;
+  const wasTap = wasTouchTooltipCellTapGesture(event);
+  touchTooltipPointerDownState = null;
+  return wasTap;
+}
+
 function markTouchTooltipInteractionBlock(durationMs = 450) {
   if (!useTouchInteractions) return;
   const blockUntil = nowMs() + Math.max(0, Number(durationMs) || 0);
   touchTooltipInteractionBlockUntil = Math.max(touchTooltipInteractionBlockUntil, blockUntil);
+  touchTooltipDismissBlockUntil = Math.max(touchTooltipDismissBlockUntil, blockUntil);
 }
 
 function shouldIgnoreTouchCellClick() {
@@ -1261,38 +1371,71 @@ function getTooltipEventPoint(event, fallbackElement) {
 
 function attachTooltip(cell, text) {
   if (!text) return;
-  cell.addEventListener("mouseenter", (event) => {
-    if (isTooltipPinned()) return;
-    if (hasActiveTooltipCell()) return;
-    showTooltip(text, event.clientX, event.clientY);
-  });
-  cell.addEventListener("mousemove", (event) => {
-    if (isTooltipPinned()) return;
-    if (hasActiveTooltipCell()) return;
-    showTooltip(text, event.clientX, event.clientY);
-  });
-  cell.addEventListener("mouseleave", () => {
-    if (isTooltipPinned()) return;
-    if (hasActiveTooltipCell()) return;
-    hideTooltip();
-  });
   if (!useTouchInteractions) {
+    cell.addEventListener("mouseenter", (event) => {
+      if (isTooltipPinned()) return;
+      if (hasActiveTooltipCell()) return;
+      showTooltip(text, event.clientX, event.clientY);
+    });
+    cell.addEventListener("mousemove", (event) => {
+      if (isTooltipPinned()) return;
+      if (hasActiveTooltipCell()) return;
+      showTooltip(text, event.clientX, event.clientY);
+    });
+    cell.addEventListener("mouseleave", () => {
+      if (isTooltipPinned()) return;
+      if (hasActiveTooltipCell()) return;
+      hideTooltip();
+    });
     return;
   }
-  cell.addEventListener("click", (event) => {
-    if (shouldIgnoreTouchCellClick() || isPointInsideTooltip(event)) {
+  const handleTouchCellSelection = (event) => {
+    if (shouldIgnoreTouchCellClick()) {
       event.stopPropagation();
       return;
     }
+    markTouchTooltipDismissBlock(900);
     if (cell.classList.contains("active")) {
-      cell.classList.remove("active");
-      hideTooltip();
+      // Keep touch selection stable; outside tap or another cell tap clears it.
       return;
     }
     clearActiveTouchCell();
     cell.classList.add("active");
     const point = getTooltipEventPoint(event, cell);
     showTooltip(text, point.x, point.y);
+  };
+  cell.addEventListener("pointerdown", (event) => {
+    rememberTooltipPointerType(event);
+    markTouchTooltipCellPointerDown(event, cell);
+  });
+  cell.addEventListener("pointerup", (event) => {
+    rememberTooltipPointerType(event);
+    if (!isTouchTooltipActivationEvent(event)) {
+      return;
+    }
+    const wasTap = resolveTouchTooltipCellPointerUpTap(event);
+    markTouchTooltipCellPointerUp(cell, 700, wasTap);
+    if (!wasTap) {
+      event.stopPropagation();
+      return;
+    }
+    handleTouchCellSelection(event);
+  });
+  cell.addEventListener("pointercancel", (event) => {
+    rememberTooltipPointerType(event);
+    if (!isTouchTooltipActivationEvent(event)) {
+      return;
+    }
+    resolveTouchTooltipCellPointerUpTap(event);
+    markTouchTooltipCellPointerUp(cell, 700, false);
+  });
+  cell.addEventListener("click", (event) => {
+    rememberTooltipPointerType(event);
+    if (shouldSuppressTouchTooltipCellClick(event, cell)) {
+      event.stopPropagation();
+      return;
+    }
+    handleTouchCellSelection(event);
   });
 }
 
@@ -2244,22 +2387,22 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
     lines.push(createTooltipTextLine(`Duration: ${duration}`));
     const tooltipContent = { lines };
     const canPinTooltip = Boolean(flattenTooltipActivityLinks(activityLinksByType).length);
-    cell.addEventListener("mouseenter", (event) => {
-      if (isTooltipPinned()) return;
-      if (hasActiveTooltipCell()) return;
-      showTooltip(tooltipContent, event.clientX, event.clientY);
-    });
-    cell.addEventListener("mousemove", (event) => {
-      if (isTooltipPinned()) return;
-      if (hasActiveTooltipCell()) return;
-      showTooltip(tooltipContent, event.clientX, event.clientY);
-    });
-    cell.addEventListener("mouseleave", () => {
-      if (isTooltipPinned()) return;
-      if (hasActiveTooltipCell()) return;
-      hideTooltip();
-    });
     if (!useTouchInteractions) {
+      cell.addEventListener("mouseenter", (event) => {
+        if (isTooltipPinned()) return;
+        if (hasActiveTooltipCell()) return;
+        showTooltip(tooltipContent, event.clientX, event.clientY);
+      });
+      cell.addEventListener("mousemove", (event) => {
+        if (isTooltipPinned()) return;
+        if (hasActiveTooltipCell()) return;
+        showTooltip(tooltipContent, event.clientX, event.clientY);
+      });
+      cell.addEventListener("mouseleave", () => {
+        if (isTooltipPinned()) return;
+        if (hasActiveTooltipCell()) return;
+        hideTooltip();
+      });
       if (canPinTooltip) {
         cell.addEventListener("click", (event) => {
           if (pinnedTooltipCell === cell) {
@@ -2279,14 +2422,14 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
         });
       }
     } else {
-      cell.addEventListener("click", (event) => {
-        if (shouldIgnoreTouchCellClick() || isPointInsideTooltip(event)) {
+      const handleTouchCellSelection = (event) => {
+        if (shouldIgnoreTouchCellClick()) {
           event.stopPropagation();
           return;
         }
+        markTouchTooltipDismissBlock(900);
         if (cell.classList.contains("active")) {
-          cell.classList.remove("active");
-          hideTooltip();
+          // Keep touch selection stable; outside tap or another cell tap clears it.
           return;
         }
         const active = grid.querySelector(".cell.active");
@@ -2294,6 +2437,39 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
         cell.classList.add("active");
         const point = getTooltipEventPoint(event, cell);
         showTooltip(tooltipContent, point.x, point.y);
+      };
+      cell.addEventListener("pointerdown", (event) => {
+        rememberTooltipPointerType(event);
+        markTouchTooltipCellPointerDown(event, cell);
+      });
+      cell.addEventListener("pointerup", (event) => {
+        rememberTooltipPointerType(event);
+        if (!isTouchTooltipActivationEvent(event)) {
+          return;
+        }
+        const wasTap = resolveTouchTooltipCellPointerUpTap(event);
+        markTouchTooltipCellPointerUp(cell, 700, wasTap);
+        if (!wasTap) {
+          event.stopPropagation();
+          return;
+        }
+        handleTouchCellSelection(event);
+      });
+      cell.addEventListener("pointercancel", (event) => {
+        rememberTooltipPointerType(event);
+        if (!isTouchTooltipActivationEvent(event)) {
+          return;
+        }
+        resolveTouchTooltipCellPointerUpTap(event);
+        markTouchTooltipCellPointerUp(cell, 700, false);
+      });
+      cell.addEventListener("click", (event) => {
+        rememberTooltipPointerType(event);
+        if (shouldSuppressTouchTooltipCellClick(event, cell)) {
+          event.stopPropagation();
+          return;
+        }
+        handleTouchCellSelection(event);
       });
     }
 
@@ -4430,8 +4606,45 @@ async function init() {
       }
     });
 
-    const dismissTooltipOnTouchScroll = () => {
-      if (nowMs() <= touchTooltipInteractionBlockUntil) {
+    let lastTouchViewportScrollX = window.scrollX || window.pageXOffset || 0;
+    let lastTouchViewportScrollY = window.scrollY || window.pageYOffset || 0;
+
+    const dismissTooltipOnTouchScroll = (event) => {
+      const scrollTarget = event?.target;
+      const targetElement = scrollTarget?.nodeType === Node.TEXT_NODE
+        ? scrollTarget.parentElement
+        : scrollTarget;
+      const cardScrollEvent = Boolean(
+        targetElement
+        && targetElement !== document
+        && targetElement !== window
+        && typeof targetElement.closest === "function"
+        && targetElement.closest(".card"),
+      );
+
+      if (cardScrollEvent && tooltip.classList.contains("visible")) {
+        dismissTooltipState();
+        return;
+      }
+
+      const currentScrollX = window.scrollX || window.pageXOffset || 0;
+      const currentScrollY = window.scrollY || window.pageYOffset || 0;
+      const viewportMoved = Math.abs(currentScrollX - lastTouchViewportScrollX) >= 2
+        || Math.abs(currentScrollY - lastTouchViewportScrollY) >= 2;
+      lastTouchViewportScrollX = currentScrollX;
+      lastTouchViewportScrollY = currentScrollY;
+
+      if (!tooltip.classList.contains("visible")) {
+        return;
+      }
+
+      // Always dismiss on actual page movement so touch pan/scroll never leaves stale tooltips.
+      if (viewportMoved) {
+        dismissTooltipState();
+        return;
+      }
+
+      if (nowMs() <= touchTooltipInteractionBlockUntil || shouldIgnoreTouchTooltipDismiss()) {
         return;
       }
       dismissTooltipState();

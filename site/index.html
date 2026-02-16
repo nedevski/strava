@@ -1223,10 +1223,19 @@
         border-radius: 3px;
         background: #1f2937;
         transition: box-shadow 0.15s ease, filter 0.15s ease;
+        position: relative;
+        touch-action: manipulation;
+      }
+
+      .cell::before {
+        content: "";
+        position: absolute;
+        inset: calc(var(--gap) / -2);
       }
 
       .cell.outside {
         background: transparent;
+        pointer-events: none;
       }
 
       @media (hover: hover) and (pointer: fine) {
@@ -1284,6 +1293,10 @@
         transition: opacity 0.15s ease;
       }
 
+      .tooltip.touch .tooltip-link {
+        pointer-events: auto;
+      }
+
       .tooltip.touch.nowrap {
         width: max-content;
         max-width: none;
@@ -1296,7 +1309,7 @@
       }
 
       .tooltip.touch.visible {
-        pointer-events: auto;
+        pointer-events: none;
         transform: none;
       }
 
