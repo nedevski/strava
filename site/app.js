@@ -993,6 +993,10 @@ function clearActiveTouchCell() {
   if (active) active.classList.remove("active");
 }
 
+function hasActiveTooltipCell() {
+  return Boolean(document.querySelector(".cell.active"));
+}
+
 function isTooltipLinkTarget(target) {
   if (!target || typeof target.closest !== "function") return false;
   return Boolean(target.closest(".tooltip-link"));
@@ -1019,14 +1023,17 @@ function attachTooltip(cell, text) {
   if (!text) return;
   cell.addEventListener("mouseenter", (event) => {
     if (isTooltipPinned()) return;
+    if (hasActiveTooltipCell()) return;
     showTooltip(text, event.clientX, event.clientY);
   });
   cell.addEventListener("mousemove", (event) => {
     if (isTooltipPinned()) return;
+    if (hasActiveTooltipCell()) return;
     showTooltip(text, event.clientX, event.clientY);
   });
   cell.addEventListener("mouseleave", () => {
     if (isTooltipPinned()) return;
+    if (hasActiveTooltipCell()) return;
     hideTooltip();
   });
   if (!isTouch) {
@@ -1995,14 +2002,17 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
     const canPinTooltip = Boolean(flattenTooltipActivityLinks(activityLinksByType).length);
     cell.addEventListener("mouseenter", (event) => {
       if (isTooltipPinned()) return;
+      if (hasActiveTooltipCell()) return;
       showTooltip(tooltipContent, event.clientX, event.clientY);
     });
     cell.addEventListener("mousemove", (event) => {
       if (isTooltipPinned()) return;
+      if (hasActiveTooltipCell()) return;
       showTooltip(tooltipContent, event.clientX, event.clientY);
     });
     cell.addEventListener("mouseleave", () => {
       if (isTooltipPinned()) return;
+      if (hasActiveTooltipCell()) return;
       hideTooltip();
     });
     if (!isTouch) {
