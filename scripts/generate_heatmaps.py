@@ -233,16 +233,21 @@ def _profile_url_from_config(config: Dict, source: str) -> Optional[str]:
     host_regex = _host_regex_for_source(source)
     if not host or host_regex is None or not host_regex.search(host):
         return None
-    path = str(parsed.path or "").strip().rstrip("/")
-    if not path:
-        return None
-    if source == "garmin" and not re.match(r"^/(?:modern/)?profile/[^/]+$", path, flags=re.IGNORECASE):
-        return None
+    if source == "garmin":
+        path = str(parsed.path or "").strip()
+        match = re.match(r"^/(?:modern/)?profile/([^/]+)(?:/.*)?$", path, flags=re.IGNORECASE)
+        if not match:
+            return None
+        normalized_path = f"/modern/profile/{match.group(1)}"
+    else:
+        normalized_path = str(parsed.path or "").strip().rstrip("/")
+        if not normalized_path:
+            return None
     return urllib.parse.urlunparse(
         (
             parsed.scheme or "https",
             parsed.netloc,
-            path,
+            normalized_path,
             "",
             parsed.query,
             "",

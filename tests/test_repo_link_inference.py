@@ -422,6 +422,16 @@ class RepoLinkInferenceTests(unittest.TestCase):
         result = self._parse_strava_profile("https://connect.garmin.com/modern/activity/12345")
         self.assertIsNone(result)
 
+    def test_parses_valid_garmin_profile_url_with_trailing_segments(self) -> None:
+        result = self._parse_strava_profile("https://connect.garmin.com/modern/profile/abcd-1234/activities")
+        self.assertEqual(
+            result,
+            {
+                "href": "https://connect.garmin.com/modern/profile/abcd-1234",
+                "label": "Garmin",
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

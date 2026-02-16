@@ -929,22 +929,20 @@ def _normalize_provider_profile_url(value: Optional[str], source: str) -> str:
         if not host or not STRAVA_HOST_RE.search(host):
             raise ValueError("Strava profile URL must use a strava.com hostname.")
         path_error = "Strava profile URL must include a profile path (for example /athletes/<id>)."
-        path_pattern = None
+        normalized_path = str(parsed.path or "").strip().rstrip("/") or "/"
+        if not normalized_path or normalized_path == "/":
+            raise ValueError(path_error)
     elif normalized_source == "garmin":
         if not host or not GARMIN_CONNECT_HOST_RE.search(host):
             raise ValueError("Garmin profile URL must use a connect.garmin.com hostname.")
         path_error = "Garmin profile URL must include a profile path (for example /modern/profile/<id>)."
-        path_pattern = re.compile(r"^/(?:modern/)?profile/[^/]+$", flags=re.IGNORECASE)
+        path = str(parsed.path or "").strip()
+        match = re.match(r"^/(?:modern/)?profile/([^/]+)(?:/.*)?$", path, flags=re.IGNORECASE)
+        if not match:
+            raise ValueError(path_error)
+        normalized_path = f"/modern/profile/{match.group(1)}"
     else:
         raise ValueError(f"Unsupported source for profile URL normalization: {source!r}")
-
-    path = str(parsed.path or "").strip()
-    if not path or path == "/":
-        raise ValueError(path_error)
-
-    normalized_path = path.rstrip("/") or "/"
-    if path_pattern and not path_pattern.match(normalized_path):
-        raise ValueError(path_error)
 
     normalized = urllib.parse.urlunparse(
         (
@@ -1136,6 +1134,31 @@ def _prompt_use_garmin_activity_links(default_enabled: bool) -> bool:
     return choice == "yes"
 
 
+def _prompt_profile_url_if_missing(source: str) -> str:
+    normalized_source = str(source or "").strip().lower()
+    if normalized_source == "garmin":
+        example = "https://connect.garmin.com/modern/profile/<id>"
+        normalize = _normalize_garmin_profile_url
+        provider_name = "Garmin"
+    else:
+        example = "https://www.strava.com/athletes/<id>"
+        normalize = _normalize_strava_profile_url
+        provider_name = "Strava"
+
+    print(
+        f"{provider_name} profile URL could not be auto-detected.\n"
+        f"Optional: paste your {provider_name} profile URL (example: {example})."
+    )
+    while True:
+        response = input("Profile URL (leave blank to skip): ").strip()
+        if not response:
+            return ""
+        try:
+            return normalize(response)
+        except ValueError as exc:
+            print(str(exc))
+
+
 def _resolve_strava_profile_url(
     args: argparse.Namespace,
     interactive: bool,
@@ -1160,7 +1183,11 @@ def _resolve_strava_profile_url(
     candidate = detected or existing_value
     if interactive:
         enabled = _prompt_use_strava_profile_link(default_enabled=bool(candidate))
-        return candidate if enabled else ""
+        if not enabled:
+            return ""
+        if candidate:
+            return candidate
+        return _prompt_profile_url_if_missing("strava")
 
     return candidate
 
@@ -1198,7 +1225,11 @@ def _resolve_garmin_profile_url(
     candidate = detected or existing_value
     if interactive:
         enabled = _prompt_use_garmin_profile_link(default_enabled=bool(candidate))
-        return candidate if enabled else ""
+        if not enabled:
+            return ""
+        if candidate:
+            return candidate
+        return _prompt_profile_url_if_missing("garmin")
 
     return candidate
 

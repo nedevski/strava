@@ -385,12 +385,18 @@ function parseStravaProfileUrl(value) {
   if (!path || path === "/") {
     return null;
   }
-  if (isGarminHost && !/^\/(?:modern\/)?profile\/[^/]+$/i.test(path)) {
-    return null;
+
+  let normalizedPath = path;
+  if (isGarminHost) {
+    const garminMatch = path.match(/^\/(?:modern\/)?profile\/([^/]+)(?:\/.*)?$/i);
+    if (!garminMatch) {
+      return null;
+    }
+    normalizedPath = `/modern/profile/${garminMatch[1]}`;
   }
 
   return {
-    href: `${parsed.protocol}//${parsed.host}${path}${parsed.search}`,
+    href: `${parsed.protocol}//${parsed.host}${normalizedPath}${parsed.search}`,
     label: isGarminHost ? "Garmin" : "Strava",
   };
 }

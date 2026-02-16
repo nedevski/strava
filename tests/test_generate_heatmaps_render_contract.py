@@ -330,6 +330,31 @@ class GenerateHeatmapsRenderContractTests(unittest.TestCase):
             "https://connect.garmin.com/modern/profile/abc123",
         )
 
+    def test_generate_canonicalizes_garmin_profile_url_when_configured(self) -> None:
+        captured = {}
+
+        with (
+            mock.patch(
+                "generate_heatmaps.load_config",
+                return_value={
+                    "sync": {},
+                    "activities": {},
+                    "source": "garmin",
+                    "garmin": {"profile_url": "https://connect.garmin.com/modern/profile/abc123/activities"},
+                },
+            ),
+            mock.patch("generate_heatmaps.os.path.exists", return_value=False),
+            mock.patch("generate_heatmaps._load_activities", return_value=[]),
+            mock.patch("generate_heatmaps._repo_slug_from_git", return_value=None),
+            mock.patch("generate_heatmaps._write_site_data", side_effect=lambda payload: captured.setdefault("payload", payload)),
+        ):
+            generate_heatmaps.generate(write_svgs=False)
+
+        self.assertEqual(
+            captured["payload"].get("garmin_profile_url"),
+            "https://connect.garmin.com/modern/profile/abc123",
+        )
+
     def test_generate_passes_garmin_activity_link_opt_in_to_load_activities(self) -> None:
         load_args = {}
 
