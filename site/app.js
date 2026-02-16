@@ -960,8 +960,8 @@ function renderTooltipContent(content) {
         const link = document.createElement("a");
         link.className = "tooltip-link";
         link.href = href;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
+        link.target = "_self";
+        link.rel = "noreferrer";
         link.addEventListener(
           "touchstart",
           (event) => {
@@ -1119,6 +1119,17 @@ function openTooltipLinkInNewTab(linkElement) {
   return false;
 }
 
+function openTooltipLinkInCurrentTab(linkElement) {
+  const href = normalizeTooltipHref(linkElement?.href || linkElement?.getAttribute?.("href"));
+  if (!href) return false;
+  if (window.location && typeof window.location.assign === "function") {
+    window.location.assign(href);
+  } else if (window.location) {
+    window.location.href = href;
+  }
+  return true;
+}
+
 function handleTooltipLinkActivation(event) {
   const linkElement = tooltipLinkElementFromEventTarget(event.target);
   if (!linkElement) {
@@ -1127,8 +1138,10 @@ function handleTooltipLinkActivation(event) {
   rememberTooltipPointerType(event);
   event.stopPropagation();
   if (isTouchTooltipActivationEvent(event)) {
-    // Mobile/touch: allow native anchor navigation for universal-link app handoff.
+    // Mobile/touch: force same-tab navigation so iOS can hand off universal links to Strava.
+    event.preventDefault();
     markTouchTooltipInteractionBlock(1600);
+    openTooltipLinkInCurrentTab(linkElement);
     return true;
   }
   // Desktop/mouse: open explicitly in a new tab and never navigate current tab.

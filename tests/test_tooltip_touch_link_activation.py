@@ -25,6 +25,7 @@ class TooltipTouchLinkActivationTests(unittest.TestCase):
             "remember_tooltip_pointer_type": r"function rememberTooltipPointerType\(event\)\s*{[\s\S]*?\n}\n",
             "is_touch_tooltip_activation_event": r"function isTouchTooltipActivationEvent\(event\)\s*{[\s\S]*?\n}\n",
             "open_tooltip_link_in_new_tab": r"function openTooltipLinkInNewTab\(linkElement\)\s*{[\s\S]*?\n}\n",
+            "open_tooltip_link_in_current_tab": r"function openTooltipLinkInCurrentTab\(linkElement\)\s*{[\s\S]*?\n}\n",
             "handle_tooltip_link_activation": r"function handleTooltipLinkActivation\(event\)\s*{[\s\S]*?\n}\n",
         }
         extracted: dict[str, str] = {}
@@ -65,6 +66,7 @@ class TooltipTouchLinkActivationTests(unittest.TestCase):
             f"{self.sources['remember_tooltip_pointer_type']}\n"
             f"{self.sources['is_touch_tooltip_activation_event']}\n"
             f"{self.sources['open_tooltip_link_in_new_tab']}\n"
+            f"{self.sources['open_tooltip_link_in_current_tab']}\n"
             f"{self.sources['handle_tooltip_link_activation']}\n"
             "const linkElement = {\n"
             "  href: payload.href,\n"
@@ -110,10 +112,10 @@ class TooltipTouchLinkActivationTests(unittest.TestCase):
             }
         )
         self.assertTrue(result["activated"])
-        self.assertFalse(result["defaultPrevented"])
+        self.assertTrue(result["defaultPrevented"])
         self.assertTrue(result["propagationStopped"])
         self.assertEqual(result["markCalls"], [1600])
-        self.assertIsNone(result["assignedHref"])
+        self.assertEqual(result["assignedHref"], href)
         self.assertEqual(result["dismissCalls"], 0)
         self.assertEqual(result["openCalls"], [])
 
@@ -128,10 +130,10 @@ class TooltipTouchLinkActivationTests(unittest.TestCase):
             }
         )
         self.assertTrue(result["activated"])
-        self.assertFalse(result["defaultPrevented"])
+        self.assertTrue(result["defaultPrevented"])
         self.assertTrue(result["propagationStopped"])
         self.assertEqual(result["markCalls"], [1600])
-        self.assertIsNone(result["assignedHref"])
+        self.assertEqual(result["assignedHref"], href)
         self.assertEqual(result["dismissCalls"], 0)
         self.assertEqual(result["openCalls"], [])
 
