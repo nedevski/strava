@@ -26,7 +26,8 @@ You will be prompted for:
 - Source (`strava` or `garmin`)
 - Unit preference (`US` or `Metric`)
 - Heatmap week start (`Sunday` or `Monday`)
-- Optional Strava tooltip links to individual activities (`Yes` or `No`)
+- Optional profile link in the dashboard header for the selected source (`Yes` or `No`)
+- Optional tooltip links to individual activities for the selected source (`Yes` or `No`)
 
 The setup may take several minutes to complete when run for the first time. If any automation step fails, the script prints steps to remedy the failed step.  
 Once the script succeeds, it will provide the URL for your dashboard.
@@ -52,9 +53,10 @@ Base settings live in `config.yaml`, and `config.local.yaml` overrides them when
 
 Auth + source settings:
 - `source` (`strava` or `garmin`)
-- `strava.client_id`, `strava.client_secret`, `strava.refresh_token`
+- `strava.client_id`, `strava.client_secret`, `strava.refresh_token`, `strava.profile_url`
 - `strava.include_activity_urls` (when `true`, yearly tooltip details include links to individual Strava activities)
-- `garmin.token_store_b64`, `garmin.email`, `garmin.password`
+- `garmin.token_store_b64`, `garmin.email`, `garmin.password`, `garmin.profile_url`
+- `garmin.include_activity_urls` (when `true`, yearly tooltip details include links to individual Garmin activities)
 - `garmin.strict_token_only` (when `true`, Garmin sync requires `garmin.token_store_b64` and does not fall back to email/password auth)
 
 Sync scope + backfill behavior:

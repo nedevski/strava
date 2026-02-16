@@ -189,6 +189,22 @@ class TooltipTouchLinkActivationTests(unittest.TestCase):
         self.assertIsNone(result["assignedHref"])
         self.assertEqual(result["dismissCalls"], 0)
 
+    def test_touch_garmin_link_activation_navigates_same_tab(self) -> None:
+        href = "https://connect.garmin.com/modern/activity/12345"
+        result = self._run_js(
+            {
+                "is_touch": True,
+                "use_link_target": True,
+                "window_open_returns_window": False,
+                "href": href,
+            }
+        )
+        self.assertTrue(result["activated"])
+        self.assertTrue(result["defaultPrevented"])
+        self.assertTrue(result["propagationStopped"])
+        self.assertEqual(result["assignedHref"], href)
+        self.assertEqual(result["openCalls"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

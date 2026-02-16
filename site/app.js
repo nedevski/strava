@@ -51,6 +51,12 @@ const headerMeta = document.getElementById("headerMeta");
 const headerLinks = document.querySelector(".header-links");
 const repoLink = document.querySelector(".repo-link");
 const stravaProfileLink = document.querySelector(".strava-profile-link");
+const stravaProfileLogo = stravaProfileLink
+  ? stravaProfileLink.querySelector(".strava-logo")
+  : null;
+const garminProfileLogo = stravaProfileLink
+  ? stravaProfileLink.querySelector(".garmin-logo")
+  : null;
 const stravaProfileLabel = stravaProfileLink
   ? stravaProfileLink.querySelector(".strava-profile-label")
   : null;
@@ -369,7 +375,9 @@ function parseStravaProfileUrl(value) {
   }
 
   const host = String(parsed.hostname || "").toLowerCase();
-  if (!(host === "strava.com" || host.endsWith(".strava.com"))) {
+  const isStravaHost = host === "strava.com" || host.endsWith(".strava.com");
+  const isGarminHost = host === "connect.garmin.com" || host.endsWith(".connect.garmin.com");
+  if (!isStravaHost && !isGarminHost) {
     return null;
   }
 
@@ -377,10 +385,13 @@ function parseStravaProfileUrl(value) {
   if (!path || path === "/") {
     return null;
   }
+  if (isGarminHost && !/^\/(?:modern\/)?profile\/[^/]+$/i.test(path)) {
+    return null;
+  }
 
   return {
     href: `${parsed.protocol}//${parsed.host}${path}${parsed.search}`,
-    label: "Strava",
+    label: isGarminHost ? "Garmin" : "Strava",
   };
 }
 
@@ -399,12 +410,17 @@ function parseStravaActivityUrl(value) {
   }
 
   const host = String(parsed.hostname || "").toLowerCase();
-  if (!(host === "strava.com" || host.endsWith(".strava.com"))) {
+  const isStravaHost = host === "strava.com" || host.endsWith(".strava.com");
+  const isGarminHost = host === "connect.garmin.com" || host.endsWith(".connect.garmin.com");
+  if (!isStravaHost && !isGarminHost) {
     return null;
   }
 
   const path = String(parsed.pathname || "").trim().replace(/\/+$/, "");
-  if (!/^\/activities\/[^/]+$/i.test(path)) {
+  if (isStravaHost && !/^\/activities\/[^/]+$/i.test(path)) {
+    return null;
+  }
+  if (isGarminHost && !/^\/(?:modern\/)?activity\/[^/]+$/i.test(path)) {
     return null;
   }
 
@@ -413,19 +429,32 @@ function parseStravaActivityUrl(value) {
   };
 }
 
-function syncStravaProfileLink(profileUrl) {
+function syncStravaProfileLink(profileUrl, source) {
   if (!stravaProfileLink) return;
   const parsed = parseStravaProfileUrl(profileUrl);
   if (!parsed) {
     stravaProfileLink.hidden = true;
+    if (stravaProfileLogo) {
+      stravaProfileLogo.hidden = false;
+    }
+    if (garminProfileLogo) {
+      garminProfileLogo.hidden = true;
+    }
     syncHeaderLinkPlacement();
     return;
   }
   stravaProfileLink.href = parsed.href;
+  const providerLabel = parsed.label || providerDisplayName(source) || "Profile";
   if (stravaProfileLabel) {
-    stravaProfileLabel.textContent = parsed.label;
+    stravaProfileLabel.textContent = providerLabel;
   } else {
-    stravaProfileLink.textContent = parsed.label;
+    stravaProfileLink.textContent = providerLabel;
+  }
+  if (stravaProfileLogo) {
+    stravaProfileLogo.hidden = providerLabel !== "Strava";
+  }
+  if (garminProfileLogo) {
+    garminProfileLogo.hidden = providerLabel !== "Garmin";
   }
   stravaProfileLink.hidden = false;
   syncHeaderLinkPlacement();
@@ -1179,7 +1208,7 @@ function handleTooltipLinkActivation(event) {
       event.preventDefault();
       return true;
     }
-    // Mobile/touch: force same-tab navigation so iOS can hand off universal links to Strava.
+    // Mobile/touch: force same-tab navigation so universal links can hand off to provider apps.
     event.preventDefault();
     markTouchTooltipInteractionBlock(1600);
     markTouchTooltipLinkClickSuppress(1200);
@@ -3217,9 +3246,16 @@ async function init() {
     || payload.repository,
   );
   syncStravaProfileLink(
-    payload.strava_profile_url
+    payload.profile_url
+    || payload.profileUrl
+    || payload.provider_profile_url
+    || payload.garmin_profile_url
+    || payload.garminProfileUrl
+    || payload.garmin_profile
+    || payload.strava_profile_url
     || payload.stravaProfileUrl
     || payload.strava_profile,
+    payload.source || payload.provider,
   );
   setDashboardTitle(payload.source);
   TYPE_META = payload.type_meta || {};

@@ -128,6 +128,13 @@ class TooltipActivityLinksTests(unittest.TestCase):
         )
         self.assertIsNone(result)
 
+    def test_parse_strava_activity_url_accepts_garmin_activity_links(self) -> None:
+        result = self._run_js(
+            "parseStravaActivityUrl(payload.value)",
+            {"value": "https://connect.garmin.com/modern/activity/123"},
+        )
+        self.assertEqual(result, {"href": "https://connect.garmin.com/modern/activity/123"})
+
 
 if __name__ == "__main__":
     unittest.main()

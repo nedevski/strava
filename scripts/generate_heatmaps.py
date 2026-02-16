@@ -49,6 +49,7 @@ DAY_LABELS_BY_WEEK_START = {
 }
 REPO_SLUG_RE = re.compile(r"^[^/\s]+/[^/\s]+$")
 STRAVA_HOST_RE = re.compile(r"(^|\.)strava\.com$", re.IGNORECASE)
+GARMIN_CONNECT_HOST_RE = re.compile(r"(^|\.)connect\.garmin\.com$", re.IGNORECASE)
 
 
 def _year_range_from_config(config: Dict, aggregate_years: Dict) -> List[int]:
@@ -129,7 +130,9 @@ def _color_scale(accent: str) -> List[str]:
 def _load_activities(
     *,
     source: str = "strava",
+    include_activity_urls: bool = False,
     include_strava_activity_urls: bool = False,
+    include_garmin_activity_urls: bool = False,
 ) -> List[Dict]:
     if not os.path.exists(ACTIVITIES_PATH):
         return []
@@ -156,8 +159,14 @@ def _load_activities(
             "subtype": str(subtype),
             "hour": hour,
         }
+        include_provider_activity_urls = include_activity_urls
         if source == "strava" and include_strava_activity_urls:
-            url = _strava_activity_url_from_id(item.get("id"))
+            include_provider_activity_urls = True
+        if source == "garmin" and include_garmin_activity_urls:
+            include_provider_activity_urls = True
+
+        if include_provider_activity_urls:
+            url = _activity_url_from_id(source, item.get("id"))
             if url:
                 activity["url"] = url
                 activity_name = str(item.get("name") or "").strip()
@@ -205,18 +214,29 @@ def _repo_slug_from_git() -> Optional[str]:
     return f"{match.group('owner')}/{match.group('repo')}"
 
 
-def _strava_profile_url_from_config(config: Dict) -> Optional[str]:
-    raw = str((config.get("strava", {}) or {}).get("profile_url", "")).strip()
+def _host_regex_for_source(source: str) -> Optional[re.Pattern]:
+    if source == "strava":
+        return STRAVA_HOST_RE
+    if source == "garmin":
+        return GARMIN_CONNECT_HOST_RE
+    return None
+
+
+def _profile_url_from_config(config: Dict, source: str) -> Optional[str]:
+    raw = str((config.get(source, {}) or {}).get("profile_url", "")).strip()
     if not raw:
         return None
     if not re.match(r"^https?://", raw, flags=re.IGNORECASE):
         raw = f"https://{raw.lstrip('/')}"
     parsed = urllib.parse.urlparse(raw)
     host = str(parsed.hostname or "").lower()
-    if not host or not STRAVA_HOST_RE.search(host):
+    host_regex = _host_regex_for_source(source)
+    if not host or host_regex is None or not host_regex.search(host):
         return None
     path = str(parsed.path or "").strip().rstrip("/")
     if not path:
+        return None
+    if source == "garmin" and not re.match(r"^/(?:modern/)?profile/[^/]+$", path, flags=re.IGNORECASE):
         return None
     return urllib.parse.urlunparse(
         (
@@ -230,15 +250,15 @@ def _strava_profile_url_from_config(config: Dict) -> Optional[str]:
     )
 
 
-def _strava_activity_links_enabled_from_config(config: Dict) -> bool:
-    value = (config.get("strava", {}) or {}).get("include_activity_urls", False)
+def _activity_links_enabled_from_config(config: Dict, source: str) -> bool:
+    value = (config.get(source, {}) or {}).get("include_activity_urls", False)
     if isinstance(value, bool):
         return value
     normalized = str(value or "").strip().lower()
     return normalized in {"1", "true", "yes", "y", "on"}
 
 
-def _strava_activity_url_from_id(activity_id: object) -> Optional[str]:
+def _activity_url_from_id(source: str, activity_id: object) -> Optional[str]:
     raw = str(activity_id or "").strip()
     if not raw:
         return None
@@ -247,7 +267,23 @@ def _strava_activity_url_from_id(activity_id: object) -> Optional[str]:
     encoded = urllib.parse.quote(raw, safe="")
     if not encoded:
         return None
-    return f"https://www.strava.com/activities/{encoded}"
+    if source == "strava":
+        return f"https://www.strava.com/activities/{encoded}"
+    if source == "garmin":
+        return f"https://connect.garmin.com/modern/activity/{encoded}"
+    return None
+
+
+def _strava_profile_url_from_config(config: Dict) -> Optional[str]:
+    return _profile_url_from_config(config, "strava")
+
+
+def _strava_activity_links_enabled_from_config(config: Dict) -> bool:
+    return _activity_links_enabled_from_config(config, "strava")
+
+
+def _strava_activity_url_from_id(activity_id: object) -> Optional[str]:
+    return _activity_url_from_id("strava", activity_id)
 
 
 def _svg_for_year(
@@ -416,7 +452,12 @@ def generate(write_svgs: bool = True):
                     f.write(svg)
 
     source = normalize_source(config.get("source", "strava"))
-    include_strava_activity_urls = source == "strava" and _strava_activity_links_enabled_from_config(config)
+    include_activity_urls = _activity_links_enabled_from_config(config, source)
+    load_activities_kwargs = {"source": source}
+    if source == "strava":
+        load_activities_kwargs["include_strava_activity_urls"] = include_activity_urls
+    elif source == "garmin":
+        load_activities_kwargs["include_garmin_activity_urls"] = include_activity_urls
     site_payload = {
         "source": source,
         "generated_at": utc_now().isoformat(),
@@ -427,14 +468,15 @@ def generate(write_svgs: bool = True):
         "aggregates": aggregate_years,
         "units": units,
         "week_start": week_start,
-        "activities": _load_activities(
-            source=source,
-            include_strava_activity_urls=include_strava_activity_urls,
-        ),
+        "activities": _load_activities(**load_activities_kwargs),
     }
-    strava_profile_url = _strava_profile_url_from_config(config)
-    if source == "strava" and strava_profile_url:
-        site_payload["strava_profile_url"] = strava_profile_url
+    profile_url = _profile_url_from_config(config, source)
+    if profile_url:
+        site_payload["profile_url"] = profile_url
+        if source == "strava":
+            site_payload["strava_profile_url"] = profile_url
+        elif source == "garmin":
+            site_payload["garmin_profile_url"] = profile_url
     repo_slug = _repo_slug_from_git()
     if repo_slug:
         site_payload["repo"] = repo_slug
