@@ -993,13 +993,22 @@ function clearActiveTouchCell() {
   if (active) active.classList.remove("active");
 }
 
+function dismissTooltipState() {
+  clearPinnedTooltipCell();
+  clearActiveTouchCell();
+  hideTooltip();
+}
+
 function hasActiveTooltipCell() {
   return Boolean(document.querySelector(".cell.active"));
 }
 
 function isTooltipLinkTarget(target) {
-  if (!target || typeof target.closest !== "function") return false;
-  return Boolean(target.closest(".tooltip-link"));
+  const resolvedTarget = target?.nodeType === Node.TEXT_NODE
+    ? target.parentElement
+    : target;
+  if (!resolvedTarget || typeof resolvedTarget.closest !== "function") return false;
+  return Boolean(resolvedTarget.closest(".tooltip-link"));
 }
 
 function getTooltipEventPoint(event, fallbackElement) {
@@ -4095,6 +4104,14 @@ async function init() {
   });
 
   if (!isTouch) {
+    tooltip.addEventListener("click", (event) => {
+      if (!isTooltipLinkTarget(event.target)) return;
+      event.stopPropagation();
+      window.setTimeout(() => {
+        dismissTooltipState();
+      }, 0);
+    });
+
     document.addEventListener("pointerdown", (event) => {
       if (!isTooltipPinned()) return;
       const target = event.target;
@@ -4104,8 +4121,34 @@ async function init() {
       if (pinnedTooltipCell && pinnedTooltipCell.contains(target)) {
         return;
       }
-      clearPinnedTooltipCell();
-      hideTooltip();
+      dismissTooltipState();
+    });
+
+    const dismissTooltipOnDesktopViewportShift = () => {
+      if (!isTooltipPinned()) return;
+      dismissTooltipState();
+    };
+
+    document.addEventListener(
+      "scroll",
+      dismissTooltipOnDesktopViewportShift,
+      { passive: true, capture: true },
+    );
+
+    window.addEventListener(
+      "scroll",
+      dismissTooltipOnDesktopViewportShift,
+      { passive: true },
+    );
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") {
+        dismissTooltipState();
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      dismissTooltipState();
     });
   } else {
     tooltip.addEventListener("pointerdown", (event) => {
@@ -4116,6 +4159,9 @@ async function init() {
     tooltip.addEventListener("click", (event) => {
       if (isTooltipLinkTarget(event.target)) {
         event.stopPropagation();
+        window.setTimeout(() => {
+          dismissTooltipState();
+        }, 0);
       }
     });
 
@@ -4126,19 +4172,16 @@ async function init() {
         if (isTooltipLinkTarget(target)) {
           return;
         }
-        hideTooltip();
-        clearActiveTouchCell();
+        dismissTooltipState();
         return;
       }
       if (!target.classList.contains("cell")) {
-        hideTooltip();
-        clearActiveTouchCell();
+        dismissTooltipState();
       }
     });
 
     const dismissTooltipOnTouchScroll = () => {
-      hideTooltip();
-      clearActiveTouchCell();
+      dismissTooltipState();
     };
 
     document.addEventListener(
@@ -4160,6 +4203,16 @@ async function init() {
       },
       { passive: true },
     );
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") {
+        dismissTooltipState();
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      dismissTooltipState();
+    });
   }
 }
 
