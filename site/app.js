@@ -51,12 +51,6 @@ const headerMeta = document.getElementById("headerMeta");
 const headerLinks = document.querySelector(".header-links");
 const repoLink = document.querySelector(".repo-link");
 const stravaProfileLink = document.querySelector(".strava-profile-link");
-const stravaProfileLogo = stravaProfileLink
-  ? stravaProfileLink.querySelector(".strava-logo")
-  : null;
-const garminProfileLogo = stravaProfileLink
-  ? stravaProfileLink.querySelector(".garmin-logo")
-  : null;
 const stravaProfileLabel = stravaProfileLink
   ? stravaProfileLink.querySelector(".strava-profile-label")
   : null;
@@ -78,6 +72,8 @@ let pinnedTooltipCell = null;
 let touchTooltipInteractionBlockUntil = 0;
 let lastTooltipPointerType = "";
 let touchTooltipLinkClickSuppressUntil = 0;
+const PROFILE_PROVIDER_STRAVA = "strava";
+const PROFILE_PROVIDER_GARMIN = "garmin";
 
 function resetPersistentSideStatSizing() {
   persistentSideStatCardWidth = 0;
@@ -360,6 +356,16 @@ function syncHeaderLinkPlacement() {
   }
 }
 
+function setProfileProviderIcon(provider) {
+  if (!stravaProfileLink) return;
+  stravaProfileLink.classList.remove("profile-provider-strava", "profile-provider-garmin");
+  if (provider === PROFILE_PROVIDER_GARMIN) {
+    stravaProfileLink.classList.add("profile-provider-garmin");
+    return;
+  }
+  stravaProfileLink.classList.add("profile-provider-strava");
+}
+
 function parseStravaProfileUrl(value) {
   let raw = String(value || "").trim();
   if (!raw) return null;
@@ -440,27 +446,20 @@ function syncStravaProfileLink(profileUrl, source) {
   const parsed = parseStravaProfileUrl(profileUrl);
   if (!parsed) {
     stravaProfileLink.hidden = true;
-    if (stravaProfileLogo) {
-      stravaProfileLogo.hidden = false;
-    }
-    if (garminProfileLogo) {
-      garminProfileLogo.hidden = true;
-    }
+    setProfileProviderIcon(PROFILE_PROVIDER_STRAVA);
     syncHeaderLinkPlacement();
     return;
   }
   stravaProfileLink.href = parsed.href;
   const providerLabel = parsed.label || providerDisplayName(source) || "Profile";
+  const provider = providerLabel === "Garmin"
+    ? PROFILE_PROVIDER_GARMIN
+    : PROFILE_PROVIDER_STRAVA;
+  setProfileProviderIcon(provider);
   if (stravaProfileLabel) {
     stravaProfileLabel.textContent = providerLabel;
   } else {
     stravaProfileLink.textContent = providerLabel;
-  }
-  if (stravaProfileLogo) {
-    stravaProfileLogo.hidden = providerLabel !== "Strava";
-  }
-  if (garminProfileLogo) {
-    garminProfileLogo.hidden = providerLabel !== "Garmin";
   }
   stravaProfileLink.hidden = false;
   syncHeaderLinkPlacement();
