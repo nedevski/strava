@@ -933,8 +933,26 @@ function renderTooltipContent(content) {
         const link = document.createElement("a");
         link.className = "tooltip-link";
         link.href = href;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
+        if (isTouch) {
+          // Let mobile browsers handle Strava universal links natively.
+          link.target = "_self";
+          link.rel = "noreferrer";
+          link.addEventListener(
+            "touchstart",
+            (event) => {
+              event.stopPropagation();
+              markTouchTooltipInteractionBlock(1600);
+            },
+            { passive: true },
+          );
+          link.addEventListener("pointerdown", (event) => {
+            event.stopPropagation();
+            markTouchTooltipInteractionBlock(1600);
+          });
+        } else {
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+        }
         link.textContent = text;
         lineEl.appendChild(link);
       } else {
@@ -1083,10 +1101,8 @@ function handleTooltipLinkActivation(event) {
   }
   event.stopPropagation();
   if (isTouch) {
-    event.preventDefault();
-    // Guard against mobile click-through/ghost taps that can hit the active cell.
-    markTouchTooltipInteractionBlock(1200);
-    openTooltipLinkInNewTab(linkElement);
+    // Mobile: allow native anchor navigation so universal links can open Strava directly.
+    markTouchTooltipInteractionBlock(1600);
     return true;
   }
   // Desktop: rely on native anchor behavior (target=_blank) for consistent new-tab navigation.
@@ -4253,8 +4269,8 @@ async function init() {
       markTouchTooltipInteractionBlock(1200);
     });
     tooltip.addEventListener("click", (event) => {
-      markTouchTooltipInteractionBlock(1200);
       if (!handleTooltipLinkActivation(event)) {
+        markTouchTooltipInteractionBlock(1200);
         event.stopPropagation();
         return;
       }

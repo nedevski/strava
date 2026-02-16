@@ -105,12 +105,12 @@ class TooltipTouchLinkActivationTests(unittest.TestCase):
             }
         )
         self.assertTrue(result["activated"])
-        self.assertTrue(result["defaultPrevented"])
+        self.assertFalse(result["defaultPrevented"])
         self.assertTrue(result["propagationStopped"])
-        self.assertEqual(result["markCalls"], [1200])
+        self.assertEqual(result["markCalls"], [1600])
         self.assertIsNone(result["assignedHref"])
         self.assertEqual(result["dismissCalls"], 0)
-        self.assertEqual(len(result["openCalls"]), 1)
+        self.assertEqual(result["openCalls"], [])
 
     def test_touch_link_activation_uses_window_open_when_available(self) -> None:
         href = "https://www.strava.com/activities/67890"
@@ -123,12 +123,12 @@ class TooltipTouchLinkActivationTests(unittest.TestCase):
             }
         )
         self.assertTrue(result["activated"])
-        self.assertTrue(result["defaultPrevented"])
+        self.assertFalse(result["defaultPrevented"])
         self.assertTrue(result["propagationStopped"])
-        self.assertEqual(result["markCalls"], [1200])
+        self.assertEqual(result["markCalls"], [1600])
         self.assertIsNone(result["assignedHref"])
         self.assertEqual(result["dismissCalls"], 0)
-        self.assertEqual(len(result["openCalls"]), 1)
+        self.assertEqual(result["openCalls"], [])
 
     def test_desktop_link_activation_opens_new_tab_only(self) -> None:
         href = "https://www.strava.com/activities/24680"
