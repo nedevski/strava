@@ -68,7 +68,6 @@ let persistentSideStatCardWidth = 0;
 let persistentSideStatCardMinHeight = 0;
 let pinnedTooltipCell = null;
 let touchTooltipInteractionBlockUntil = 0;
-let touchTooltipLinkHandledAt = 0;
 
 function resetPersistentSideStatSizing() {
   persistentSideStatCardWidth = 0;
@@ -939,12 +938,9 @@ function renderTooltipContent(content) {
         link.textContent = text;
         if (isTouch) {
           link.addEventListener("touchend", (event) => {
-            event.preventDefault();
             event.stopPropagation();
-            touchTooltipLinkHandledAt = nowMs();
             markTouchTooltipInteractionBlock(650);
-            openTooltipLinkOnTouch(link);
-          }, { passive: false });
+          });
         }
         lineEl.appendChild(link);
       } else {
@@ -1066,12 +1062,12 @@ function tooltipLinkElementFromEventTarget(target) {
   return linkElement || null;
 }
 
-function openTooltipLinkOnTouch(linkElement) {
+function openTooltipLinkInNewTab(linkElement) {
   const href = normalizeTooltipHref(linkElement?.href || linkElement?.getAttribute?.("href"));
   if (!href) return;
-  const popup = window.open(href, "_blank", "noopener,noreferrer");
-  if (!popup) {
-    window.location.assign(href);
+  const opened = window.open(href, "_blank", "noopener,noreferrer");
+  if (opened) {
+    opened.opener = null;
   }
 }
 
@@ -1082,27 +1078,15 @@ function handleTooltipLinkActivation(event) {
   }
   event.stopPropagation();
   if (isTouch) {
-    if ((nowMs() - touchTooltipLinkHandledAt) <= 800) {
-      event.preventDefault();
-      return true;
-    }
     // Guard against mobile click-through/ghost taps that can hit the active cell.
     markTouchTooltipInteractionBlock(650);
-    event.preventDefault();
-    touchTooltipLinkHandledAt = nowMs();
-    openTooltipLinkOnTouch(linkElement);
     return true;
   }
-  const directLinkTap = isTooltipLinkTarget(event.target);
-  if (!directLinkTap) {
-    event.preventDefault();
-    linkElement.click();
-  }
-  if (!isTouch) {
-    window.setTimeout(() => {
-      dismissTooltipState();
-    }, 0);
-  }
+  event.preventDefault();
+  openTooltipLinkInNewTab(linkElement);
+  window.setTimeout(() => {
+    dismissTooltipState();
+  }, 0);
   return true;
 }
 
