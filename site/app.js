@@ -356,6 +356,17 @@ function syncHeaderLinkPlacement() {
   }
 }
 
+function syncProfileLinkNavigationTarget() {
+  if (!stravaProfileLink) return;
+  if (isDesktopLikeViewport()) {
+    stravaProfileLink.target = "_blank";
+    stravaProfileLink.rel = "noopener noreferrer";
+    return;
+  }
+  stravaProfileLink.removeAttribute("target");
+  stravaProfileLink.removeAttribute("rel");
+}
+
 function setProfileProviderIcon(provider) {
   if (!stravaProfileLink) return;
   stravaProfileLink.classList.remove("profile-provider-strava", "profile-provider-garmin");
@@ -447,6 +458,7 @@ function syncStravaProfileLink(profileUrl, source) {
   if (!parsed) {
     stravaProfileLink.hidden = true;
     setProfileProviderIcon(PROFILE_PROVIDER_STRAVA);
+    syncProfileLinkNavigationTarget();
     syncHeaderLinkPlacement();
     return;
   }
@@ -462,6 +474,7 @@ function syncStravaProfileLink(profileUrl, source) {
     stravaProfileLink.textContent = providerLabel;
   }
   stravaProfileLink.hidden = false;
+  syncProfileLinkNavigationTarget();
   syncHeaderLinkPlacement();
 }
 
@@ -3229,6 +3242,7 @@ async function init() {
   syncRepoLink();
   syncFooterHostedLink();
   syncStravaProfileLink();
+  syncProfileLinkNavigationTarget();
   syncHeaderLinkPlacement();
   const resp = await fetch("data.json");
   if (!resp.ok) {
@@ -4330,6 +4344,7 @@ async function init() {
       }
       lastViewportWidth = width;
       lastIsNarrowLayout = isNarrowLayout;
+      syncProfileLinkNavigationTarget();
       syncHeaderLinkPlacement();
       resetPersistentSideStatSizing();
       update();
