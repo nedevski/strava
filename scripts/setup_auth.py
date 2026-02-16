@@ -1014,8 +1014,34 @@ def _detect_strava_profile_url(tokens: dict) -> str:
 def _garmin_profile_url_from_profile(profile: object) -> str:
     if not isinstance(profile, dict):
         return ""
-    for key in ("displayName", "profileId", "id", "userProfilePk", "userId"):
-        value = profile.get(key)
+
+    direct_candidate_fields = (
+        "displayName",
+        "display_name",
+        "profileId",
+        "profile_id",
+        "id",
+        "userProfilePk",
+        "userId",
+        "user_id",
+        "userName",
+        "user_name",
+    )
+    nested_candidate_roots = (
+        "profile",
+        "userData",
+    )
+
+    candidate_values: list[object] = []
+    for key in direct_candidate_fields:
+        candidate_values.append(profile.get(key))
+    for root in nested_candidate_roots:
+        nested = profile.get(root)
+        if isinstance(nested, dict):
+            for key in direct_candidate_fields:
+                candidate_values.append(nested.get(key))
+
+    for value in candidate_values:
         if value in (None, ""):
             continue
         profile_id = str(value).strip()
@@ -1025,6 +1051,35 @@ def _garmin_profile_url_from_profile(profile: object) -> str:
         if encoded_id:
             return f"https://connect.garmin.com/modern/profile/{encoded_id}"
     return ""
+
+
+def _coerce_garmin_profile_payload(value: object) -> dict:
+    if isinstance(value, dict):
+        return value
+    if value is None:
+        return {}
+
+    payload: dict[str, object] = {}
+    field_aliases = (
+        ("displayName", "displayName"),
+        ("display_name", "displayName"),
+        ("profileId", "profileId"),
+        ("profile_id", "profileId"),
+        ("id", "id"),
+        ("userProfilePk", "userProfilePk"),
+        ("userId", "userId"),
+        ("user_id", "userId"),
+        ("userName", "userName"),
+        ("user_name", "userName"),
+        ("fullName", "fullName"),
+        ("full_name", "fullName"),
+    )
+    for source_attr, target_key in field_aliases:
+        attr_value = getattr(value, source_attr, None)
+        if attr_value in (None, ""):
+            continue
+        payload[target_key] = attr_value
+    return payload
 
 
 def _fetch_garmin_profile(
@@ -1043,9 +1098,9 @@ def _fetch_garmin_profile(
     password_value = str(password or "").strip()
 
     with tempfile.TemporaryDirectory(prefix="garmin-profile-") as tmpdir:
+        token_store_dir = os.path.join(tmpdir, "token_store")
         resumed = False
         if token_value:
-            token_store_dir = os.path.join(tmpdir, "token_store")
             try:
                 token_bytes = decode_token_store_b64(token_value)
                 write_token_store_bytes(token_bytes, token_store_dir)
@@ -1063,11 +1118,103 @@ def _fetch_garmin_profile(
             except Exception:
                 return {}
 
+        profile_candidates: list[dict] = []
+
+        def _add_profile_candidate(candidate: object) -> bool:
+            payload = _coerce_garmin_profile_payload(candidate)
+            if not payload:
+                return False
+            profile_candidates.append(payload)
+            return bool(_garmin_profile_url_from_profile(payload))
+
+        garth_client = getattr(garth, "client", None)
+        if garth_client is not None:
+            try:
+                if _add_profile_candidate(getattr(garth_client, "profile", None)):
+                    return profile_candidates[-1]
+            except Exception:
+                pass
+
+        user_profile_cls = getattr(garth, "UserProfile", None)
+        if user_profile_cls is not None and hasattr(user_profile_cls, "get"):
+            try:
+                if _add_profile_candidate(user_profile_cls.get()):
+                    return profile_candidates[-1]
+            except Exception:
+                pass
+
+        for path in (
+            "/userprofile-service/socialProfile",
+            "/userprofile-service/userprofile/profile",
+        ):
+            try:
+                if _add_profile_candidate(garth.connectapi(path)):
+                    return profile_candidates[-1]
+            except Exception:
+                continue
+
+        # Fallback to Garmin wrapper session helpers used by sync path.
         try:
-            payload = garth.connectapi("/userprofile-service/userprofile/profile")
+            from garminconnect import Garmin
         except Exception:
-            return {}
-    return payload if isinstance(payload, dict) else {}
+            Garmin = None  # type: ignore[assignment]
+
+        if Garmin:
+            clients = []
+            for factory in (
+                (lambda: Garmin(email=email_value, password=password_value)),
+                (lambda: Garmin(email_value, password_value)),
+                (lambda: Garmin()),
+            ):
+                try:
+                    clients.append(factory())
+                except Exception:
+                    continue
+            for client in clients:
+                login_ok = False
+                for login_attempt in (
+                    (lambda: client.login(tokenstore=token_store_dir)),
+                    (lambda: client.login(token_store=token_store_dir)),
+                    (lambda: client.login(token_store_dir)),
+                    (lambda: client.login(email_value, password_value)),
+                    (lambda: client.login(email=email_value, password=password_value)),
+                    (lambda: client.login()),
+                ):
+                    try:
+                        login_attempt()
+                        login_ok = True
+                        break
+                    except TypeError:
+                        continue
+                    except Exception:
+                        continue
+                if not login_ok:
+                    continue
+
+                display_name = getattr(client, "display_name", None)
+                if _add_profile_candidate({"displayName": display_name}):
+                    return profile_candidates[-1]
+                garth_client_obj = getattr(client, "garth", None)
+                if garth_client_obj is not None:
+                    try:
+                        if _add_profile_candidate(getattr(garth_client_obj, "profile", None)):
+                            return profile_candidates[-1]
+                    except Exception:
+                        pass
+                for path in (
+                    "/userprofile-service/socialProfile",
+                    "/userprofile-service/userprofile/profile",
+                ):
+                    connectapi = getattr(client, "connectapi", None)
+                    if not callable(connectapi):
+                        continue
+                    try:
+                        if _add_profile_candidate(connectapi(path)):
+                            return profile_candidates[-1]
+                    except Exception:
+                        continue
+
+    return {}
 
 
 def _detect_garmin_profile_url(

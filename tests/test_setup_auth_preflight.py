@@ -4,6 +4,7 @@ import sys
 import unittest
 from argparse import Namespace
 from contextlib import ExitStack
+from types import SimpleNamespace
 from unittest import mock
 
 
@@ -351,6 +352,36 @@ class SetupAuthDispatchTests(unittest.TestCase):
     def test_garmin_profile_url_from_profile_uses_display_name(self) -> None:
         value = setup_auth._garmin_profile_url_from_profile({"displayName": "abc-123"})
         self.assertEqual(value, "https://connect.garmin.com/modern/profile/abc-123")
+
+    def test_garmin_profile_url_from_profile_uses_nested_user_data_alias(self) -> None:
+        value = setup_auth._garmin_profile_url_from_profile({"userData": {"display_name": "abc-456"}})
+        self.assertEqual(value, "https://connect.garmin.com/modern/profile/abc-456")
+
+    def test_coerce_garmin_profile_payload_reads_object_aliases(self) -> None:
+        profile_obj = SimpleNamespace(display_name="abc-789", user_id=42)
+
+        value = setup_auth._coerce_garmin_profile_payload(profile_obj)
+
+        self.assertEqual(value["displayName"], "abc-789")
+        self.assertEqual(value["userId"], 42)
+
+    def test_fetch_garmin_profile_reads_garth_client_profile_object(self) -> None:
+        fake_garth = SimpleNamespace(
+            login=mock.Mock(),
+            client=SimpleNamespace(profile=SimpleNamespace(display_name="abc-999")),
+            UserProfile=None,
+            connectapi=mock.Mock(),
+        )
+
+        with mock.patch.dict(sys.modules, {"garth": fake_garth}):
+            value = setup_auth._fetch_garmin_profile(
+                token_store_b64="",
+                email="runner@example.com",
+                password="secret",
+            )
+
+        self.assertEqual(value["displayName"], "abc-999")
+        fake_garth.login.assert_called_once_with("runner@example.com", "secret")
 
     def test_dashboard_url_from_pages_api_prefers_cname(self) -> None:
         with mock.patch(
