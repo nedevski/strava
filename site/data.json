@@ -524,6 +524,13 @@
       "subtype": "Ride",
       "type": "Ride",
       "year": 2026
+    },
+    {
+      "date": "2026-03-15",
+      "hour": 10,
+      "subtype": "Ride",
+      "type": "Ride",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1068,6 +1075,15 @@
           "distance": 12010.8,
           "elevation_gain": 0.0,
           "moving_time": 2277.0
+        },
+        "2026-03-15": {
+          "activity_ids": [
+            "17728198943"
+          ],
+          "count": 1,
+          "distance": 16411.6,
+          "elevation_gain": 10.0,
+          "moving_time": 3504.0
         }
       },
       "Walk": {
@@ -1083,7 +1099,7 @@
       }
     }
   },
-  "generated_at": "2026-03-14T15:15:59.849190+00:00",
+  "generated_at": "2026-03-15T15:18:00.403687+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
