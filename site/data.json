@@ -683,6 +683,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/17728198943",
       "year": 2026
+    },
+    {
+      "date": "2026-03-21",
+      "hour": 12,
+      "name": "Holy cramp",
+      "subtype": "Swim",
+      "type": "Swim",
+      "url": "https://www.strava.com/activities/17800926165",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1238,6 +1247,17 @@
           "moving_time": 3504.0
         }
       },
+      "Swim": {
+        "2026-03-21": {
+          "activity_ids": [
+            "17800926165"
+          ],
+          "count": 1,
+          "distance": 1025.0,
+          "elevation_gain": 0.0,
+          "moving_time": 3766.0
+        }
+      },
       "Walk": {
         "2026-02-08": {
           "activity_ids": [
@@ -1251,7 +1271,7 @@
       }
     }
   },
-  "generated_at": "2026-03-20T15:32:01.766670+00:00",
+  "generated_at": "2026-03-21T15:14:31.342164+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",

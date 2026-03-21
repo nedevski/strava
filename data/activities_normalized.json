@@ -986,5 +986,18 @@
     "start_date_local": "2026-03-15T10:58:08Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-03-21",
+    "distance": 1025.0,
+    "elevation_gain": 0.0,
+    "id": "17800926165",
+    "moving_time": 3766.0,
+    "name": "Holy cramp",
+    "raw_activity_type": "Swim",
+    "raw_type": "Swim",
+    "start_date_local": "2026-03-21T12:50:37Z",
+    "type": "Swim",
+    "year": 2026
   }
 ]
