@@ -164,6 +164,7 @@ def _run(
     check: bool = True,
     input_text: Optional[str] = None,
 ) -> subprocess.CompletedProcess[str]:
+    cmd = _normalize_cmd(cmd)
     return subprocess.run(
         cmd,
         input=input_text,
@@ -174,6 +175,7 @@ def _run(
 
 
 def _run_stream(cmd: list[str], *, cwd: Optional[str] = None) -> None:
+    cmd = _normalize_cmd(cmd)
     subprocess.run(cmd, check=True, cwd=cwd)
 
 
@@ -200,7 +202,35 @@ def _is_transient_gh_failure(stderr: str) -> bool:
     return any(token in text for token in transient_tokens)
 
 
+def _bootstrap_gh_path() -> Optional[str]:
+    path = os.environ.get("GIT_SWEATY_BOOTSTRAP_GH_PATH", "").strip()
+    if not path:
+        return None
+    if os.path.exists(path):
+        return path
+    return None
+
+
+def _resolved_gh_path() -> Optional[str]:
+    bootstrap_path = _bootstrap_gh_path()
+    if bootstrap_path:
+        return bootstrap_path
+    return shutil.which("gh")
+
+
+def _normalize_cmd(cmd: list[str]) -> list[str]:
+    if not cmd or cmd[0] != "gh":
+        return cmd
+
+    gh_path = _resolved_gh_path()
+    if not gh_path:
+        return cmd
+    return [gh_path, *cmd[1:]]
+
+
 def _isatty() -> bool:
+    if _parse_bool_text(os.environ.get("GIT_SWEATY_BOOTSTRAP_FORCE_INTERACTIVE"), field_name="GIT_SWEATY_BOOTSTRAP_FORCE_INTERACTIVE"):
+        return True
     return bool(sys.stdin.isatty() and sys.stdout.isatty())
 
 
@@ -208,7 +238,7 @@ def _prompt(value: Optional[str], label: str, secret: bool = False) -> str:
     if value:
         return value.strip()
     if secret:
-        return _prompt_secret_masked(f"{label}: ").strip()
+        return _prompt_secret_masked(f"{label} (input hidden): ").strip()
     return input(f"{label}: ").strip()
 
 
@@ -260,15 +290,17 @@ def _prompt_secret_masked(prompt: str) -> str:
 
 
 def _assert_gh_ready() -> None:
-    if shutil.which("gh") is None:
+    if _resolved_gh_path() is None:
         raise RuntimeError(
-            "GitHub CLI (`gh`) is required. Install it from https://cli.github.com/ and run `gh auth login`."
+            "GitHub CLI (`gh`) is required. Re-run via `scripts/bootstrap.sh` for guided install/auth, "
+            "or install it from https://cli.github.com/ and run `gh auth login`."
         )
 
     status = _run(["gh", "auth", "status"], check=False)
     if status.returncode != 0:
         raise RuntimeError(
-            "GitHub CLI is not authenticated. Run `gh auth login` and re-run this script."
+            "GitHub CLI is not authenticated. Re-run via `scripts/bootstrap.sh` for guided auth, "
+            "or run `gh auth login` and re-run this script."
         )
 
 
@@ -438,7 +470,15 @@ def _bootstrap_env_and_reexec(args: argparse.Namespace) -> None:
     child_args = [arg for arg in sys.argv[1:] if arg != "--env-bootstrapped"]
     child_args.append("--env-bootstrapped")
     print("Re-launching setup inside .venv...")
-    raise SystemExit(subprocess.call([venv_python, script_path, *child_args], cwd=root))
+    try:
+        raise SystemExit(subprocess.call([venv_python, script_path, *child_args], cwd=root))
+    except FileNotFoundError as exc:
+        missing_path = getattr(exc, "filename", "") or venv_python
+        raise RuntimeError(
+            "Unable to re-launch setup inside .venv because a required file was not found. "
+            f"Expected interpreter: {venv_python}; expected setup script: {script_path}; "
+            f"missing path reported by the OS: {missing_path}"
+        ) from exc
 
 
 def _set_secret(name: str, value: str, repo: str) -> None:
@@ -825,6 +865,30 @@ def _exchange_code_for_tokens(client_id: str, client_secret: str, code: str) -> 
         with urllib.request.urlopen(request, timeout=30) as response:
             body = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
+        error_detail = ""
+        try:
+            error_body = exc.read().decode("utf-8", errors="replace").strip()
+        except Exception:
+            error_body = ""
+
+        if error_body:
+            try:
+                error_payload = json.loads(error_body)
+            except json.JSONDecodeError:
+                error_detail = error_body
+            else:
+                message = str(error_payload.get("message") or "").strip()
+                error_name = str(error_payload.get("errors") or "").strip()
+                details = [value for value in (message, error_name) if value]
+                if details:
+                    error_detail = "; ".join(details)
+                else:
+                    error_detail = error_body
+
+        if error_detail:
+            raise RuntimeError(
+                f"Strava token exchange failed with HTTP status {exc.code}: {error_detail}"
+            ) from None
         raise RuntimeError(f"Strava token exchange failed with HTTP status {exc.code}.") from None
     except urllib.error.URLError as exc:
         reason = getattr(exc, "reason", "unknown network error")
@@ -2410,7 +2474,7 @@ def _try_dispatch_pages(repo: str) -> Tuple[bool, str]:
 def _watch_run(repo: str, run_id: int) -> Tuple[bool, str]:
     print(f"\nWatching workflow run {run_id}...")
     watch = subprocess.run(
-        ["gh", "run", "watch", str(run_id), "--repo", repo, "--exit-status"],
+        _normalize_cmd(["gh", "run", "watch", str(run_id), "--repo", repo, "--exit-status"]),
         check=False,
     )
     if watch.returncode == 0:

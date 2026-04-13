@@ -1,6 +1,8 @@
 import os
+import io
 import subprocess
 import sys
+import urllib.error
 import unittest
 from argparse import Namespace
 from contextlib import ExitStack
@@ -21,6 +23,88 @@ def _completed_process(returncode: int, stdout: str = "", stderr: str = "") -> s
 
 
 class SetupAuthPreflightTests(unittest.TestCase):
+    def test_isatty_honors_bootstrap_force_interactive_env(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {"GIT_SWEATY_BOOTSTRAP_FORCE_INTERACTIVE": "1"}, clear=False),
+            mock.patch("setup_auth.sys.stdin.isatty", return_value=False),
+            mock.patch("setup_auth.sys.stdout.isatty", return_value=False),
+        ):
+            self.assertTrue(setup_auth._isatty())
+
+    def test_isatty_uses_standard_stream_detection_without_override(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {"GIT_SWEATY_BOOTSTRAP_FORCE_INTERACTIVE": ""}, clear=False),
+            mock.patch("setup_auth.sys.stdin.isatty", return_value=True),
+            mock.patch("setup_auth.sys.stdout.isatty", return_value=False),
+        ):
+            self.assertFalse(setup_auth._isatty())
+
+    def test_prompt_marks_secret_input_as_hidden(self) -> None:
+        with mock.patch("setup_auth._prompt_secret_masked", return_value=" secret ") as prompt_mock:
+            value = setup_auth._prompt(None, "STRAVA_CLIENT_SECRET", secret=True)
+
+        self.assertEqual(value, "secret")
+        prompt_mock.assert_called_once_with("STRAVA_CLIENT_SECRET (input hidden): ")
+
+    def test_exchange_code_for_tokens_includes_http_error_payload_detail(self) -> None:
+        error = urllib.error.HTTPError(
+            url=setup_auth.TOKEN_ENDPOINT,
+            code=401,
+            msg="Unauthorized",
+            hdrs=None,
+            fp=io.BytesIO(b'{"message":"Authorization Error","errors":"invalid_client"}'),
+        )
+
+        with mock.patch("setup_auth.urllib.request.urlopen", side_effect=error):
+            with self.assertRaises(RuntimeError) as exc_ctx:
+                setup_auth._exchange_code_for_tokens("client-id", "client-secret", "auth-code")
+
+        self.assertIn("HTTP status 401", str(exc_ctx.exception))
+        self.assertIn("Authorization Error", str(exc_ctx.exception))
+        self.assertIn("invalid_client", str(exc_ctx.exception))
+
+    def test_exchange_code_for_tokens_handles_http_error_without_body(self) -> None:
+        error = urllib.error.HTTPError(
+            url=setup_auth.TOKEN_ENDPOINT,
+            code=401,
+            msg="Unauthorized",
+            hdrs=None,
+            fp=io.BytesIO(b""),
+        )
+
+        with mock.patch("setup_auth.urllib.request.urlopen", side_effect=error):
+            with self.assertRaises(RuntimeError) as exc_ctx:
+                setup_auth._exchange_code_for_tokens("client-id", "client-secret", "auth-code")
+
+        self.assertEqual(str(exc_ctx.exception), "Strava token exchange failed with HTTP status 401.")
+
+    def test_run_prefers_bootstrap_resolved_gh_path(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {"GIT_SWEATY_BOOTSTRAP_GH_PATH": r"C:\tools\gh.cmd"}, clear=False),
+            mock.patch("setup_auth.os.path.exists", return_value=True),
+            mock.patch("setup_auth.subprocess.run", return_value=_completed_process(returncode=0)) as run_mock,
+        ):
+            setup_auth._run(["gh", "auth", "status"], check=False)
+
+        run_mock.assert_called_once_with(
+            [r"C:\tools\gh.cmd", "auth", "status"],
+            input=None,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def test_assert_gh_ready_accepts_bootstrap_resolved_gh_path(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {"GIT_SWEATY_BOOTSTRAP_GH_PATH": r"C:\tools\gh.cmd"}, clear=False),
+            mock.patch("setup_auth.os.path.exists", return_value=True),
+            mock.patch("setup_auth.shutil.which", return_value=None),
+            mock.patch("setup_auth._run", return_value=_completed_process(returncode=0)) as run_mock,
+        ):
+            setup_auth._assert_gh_ready()
+
+        run_mock.assert_called_once_with(["gh", "auth", "status"], check=False)
+
     def test_extract_gh_token_scopes_parses_status_output(self) -> None:
         output = """
         Logged in to github.com account user
@@ -164,6 +248,34 @@ class SetupAuthBootstrapEnvTests(unittest.TestCase):
                 mock.call([venv_python, "-m", "pip", "install", "-r", requirements], cwd="/repo"),
             ],
         )
+
+    def test_bootstrap_env_surfaces_missing_child_launch_path(self) -> None:
+        args = Namespace(no_bootstrap_env=False, env_bootstrapped=False)
+        venv_python = "/repo/.venv/bin/python"
+        requirements = "/repo/requirements.txt"
+        script_path = "/repo/scripts/setup_auth.py"
+
+        def fake_exists(path: str) -> bool:
+            return path in {requirements, venv_python}
+
+        with (
+            mock.patch("setup_auth._in_virtualenv", return_value=False),
+            mock.patch("setup_auth._project_root", return_value="/repo"),
+            mock.patch("setup_auth._venv_python_path", return_value=venv_python),
+            mock.patch("setup_auth.os.path.exists", side_effect=fake_exists),
+            mock.patch("setup_auth._ensure_venv_pip"),
+            mock.patch("setup_auth._run_stream"),
+            mock.patch("setup_auth.subprocess.call", side_effect=FileNotFoundError(2, "No such file", script_path)),
+            mock.patch("setup_auth.__file__", script_path),
+            mock.patch("setup_auth.sys.argv", ["setup_auth.py"]),
+        ):
+            with self.assertRaises(RuntimeError) as exc_ctx:
+                setup_auth._bootstrap_env_and_reexec(args)
+
+        message = str(exc_ctx.exception)
+        self.assertIn("Unable to re-launch setup inside .venv", message)
+        self.assertIn(venv_python, message)
+        self.assertIn(script_path, message)
 
 
 class SetupAuthDispatchTests(unittest.TestCase):
