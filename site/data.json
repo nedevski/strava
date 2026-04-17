@@ -746,6 +746,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/18144938378",
       "year": 2026
+    },
+    {
+      "date": "2026-04-17",
+      "hour": 17,
+      "name": "\u0425\u0430\u043c\u0430\u0447\u0435\u0441\u0442\u043e",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18148525587",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1311,12 +1320,13 @@
         },
         "2026-04-17": {
           "activity_ids": [
-            "18144938378"
+            "18144938378",
+            "18148525587"
           ],
-          "count": 1,
-          "distance": 11829.5,
-          "elevation_gain": 8.9,
-          "moving_time": 2568.0
+          "count": 2,
+          "distance": 45172.8,
+          "elevation_gain": 34.2,
+          "moving_time": 10140.0
         }
       },
       "Swim": {
@@ -1381,7 +1391,7 @@
       }
     }
   },
-  "generated_at": "2026-04-17T15:46:00.494765+00:00",
+  "generated_at": "2026-04-17T19:18:46.824122+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
