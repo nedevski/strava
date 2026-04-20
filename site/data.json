@@ -764,6 +764,24 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/18157520501",
       "year": 2026
+    },
+    {
+      "date": "2026-04-20",
+      "hour": 14,
+      "name": "Strength",
+      "subtype": "WeightTraining",
+      "type": "WeightTraining",
+      "url": "https://www.strava.com/activities/18183550380",
+      "year": 2026
+    },
+    {
+      "date": "2026-04-20",
+      "hour": 16,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18184419822",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1345,6 +1363,15 @@
           "distance": 50894.1,
           "elevation_gain": 79.2,
           "moving_time": 11116.0
+        },
+        "2026-04-20": {
+          "activity_ids": [
+            "18184419822"
+          ],
+          "count": 1,
+          "distance": 13936.6,
+          "elevation_gain": 6.1,
+          "moving_time": 2450.0
         }
       },
       "Swim": {
@@ -1405,11 +1432,20 @@
           "distance": 0.0,
           "elevation_gain": 0.0,
           "moving_time": 3005.0
+        },
+        "2026-04-20": {
+          "activity_ids": [
+            "18183550380"
+          ],
+          "count": 1,
+          "distance": 0.0,
+          "elevation_gain": 0.0,
+          "moving_time": 2210.0
         }
       }
     }
   },
-  "generated_at": "2026-04-19T15:26:56.550406+00:00",
+  "generated_at": "2026-04-20T16:00:46.189952+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
