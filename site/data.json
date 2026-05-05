@@ -845,6 +845,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/18280434315",
       "year": 2026
+    },
+    {
+      "date": "2026-05-05",
+      "hour": 9,
+      "name": "Palma de Mallorca - Playa del Arenal",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18382546160",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1489,6 +1498,15 @@
           "distance": 9748.4,
           "elevation_gain": 8.8,
           "moving_time": 2092.0
+        },
+        "2026-05-05": {
+          "activity_ids": [
+            "18382546160"
+          ],
+          "count": 1,
+          "distance": 28080.5,
+          "elevation_gain": 23.0,
+          "moving_time": 5933.0
         }
       },
       "Swim": {
@@ -1571,7 +1589,7 @@
       }
     }
   },
-  "generated_at": "2026-05-04T16:24:43.607928+00:00",
+  "generated_at": "2026-05-05T16:18:40.212129+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",

@@ -1220,5 +1220,18 @@
     "start_date_local": "2026-04-27T18:23:26Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-05-05",
+    "distance": 28080.5,
+    "elevation_gain": 23.0,
+    "id": "18382546160",
+    "moving_time": 5933.0,
+    "name": "Palma de Mallorca - Playa del Arenal",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-05-05T09:44:27Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
