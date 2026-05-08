@@ -854,6 +854,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/18382546160",
       "year": 2026
+    },
+    {
+      "date": "2026-05-08",
+      "hour": 10,
+      "name": "Morning Ride",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18422305260",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1507,6 +1516,15 @@
           "distance": 28080.5,
           "elevation_gain": 23.0,
           "moving_time": 5933.0
+        },
+        "2026-05-08": {
+          "activity_ids": [
+            "18422305260"
+          ],
+          "count": 1,
+          "distance": 10970.0,
+          "elevation_gain": 17.4,
+          "moving_time": 2510.0
         }
       },
       "Swim": {
@@ -1589,7 +1607,7 @@
       }
     }
   },
-  "generated_at": "2026-05-07T16:30:32.082000+00:00",
+  "generated_at": "2026-05-08T16:06:43.509464+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
