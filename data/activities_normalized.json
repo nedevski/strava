@@ -1240,11 +1240,37 @@
     "elevation_gain": 17.4,
     "id": "18422305260",
     "moving_time": 2510.0,
-    "name": "Morning Ride",
+    "name": "Gotta get that bread",
     "raw_activity_type": "Ride",
     "raw_type": "Ride",
     "start_date_local": "2026-05-08T10:29:37Z",
     "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-05-08",
+    "distance": 10271.0,
+    "elevation_gain": 5.7,
+    "id": "18427902775",
+    "moving_time": 2058.0,
+    "name": "Decathlon run",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-05-08T19:03:25Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-05-09",
+    "distance": 6053.1,
+    "elevation_gain": 4.1,
+    "id": "18433833252",
+    "moving_time": 3585.0,
+    "name": "Run/walk 1",
+    "raw_activity_type": "Run",
+    "raw_type": "Run",
+    "start_date_local": "2026-05-09T09:02:36Z",
+    "type": "Run",
     "year": 2026
   }
 ]
