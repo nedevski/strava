@@ -881,6 +881,33 @@
       "type": "Run",
       "url": "https://www.strava.com/activities/18433833252",
       "year": 2026
+    },
+    {
+      "date": "2026-05-10",
+      "hour": 10,
+      "name": "Home => Giro start",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18447552086",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-10",
+      "hour": 13,
+      "name": "Giro di Plovdiv",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18451279631",
+      "year": 2026
+    },
+    {
+      "date": "2026-05-10",
+      "hour": 15,
+      "name": "Giro di \u0412\u043a\u044a\u0449\u0438",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18453495968",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1544,6 +1571,17 @@
           "distance": 21241.0,
           "elevation_gain": 23.099999999999998,
           "moving_time": 4568.0
+        },
+        "2026-05-10": {
+          "activity_ids": [
+            "18447552086",
+            "18451279631",
+            "18453495968"
+          ],
+          "count": 3,
+          "distance": 12099.099999999999,
+          "elevation_gain": 39.8,
+          "moving_time": 2882.0
         }
       },
       "Run": {
@@ -1637,7 +1675,7 @@
       }
     }
   },
-  "generated_at": "2026-05-09T15:39:13.290486+00:00",
+  "generated_at": "2026-05-10T15:40:30.570409+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",

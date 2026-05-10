@@ -1272,5 +1272,44 @@
     "start_date_local": "2026-05-09T09:02:36Z",
     "type": "Run",
     "year": 2026
+  },
+  {
+    "date": "2026-05-10",
+    "distance": 1475.5,
+    "elevation_gain": 7.1,
+    "id": "18447552086",
+    "moving_time": 391.0,
+    "name": "Home => Giro start",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-05-10T10:12:08Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-05-10",
+    "distance": 4406.4,
+    "elevation_gain": 5.4,
+    "id": "18451279631",
+    "moving_time": 817.0,
+    "name": "Giro di Plovdiv",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-05-10T13:17:36Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-05-10",
+    "distance": 6217.2,
+    "elevation_gain": 27.3,
+    "id": "18453495968",
+    "moving_time": 1674.0,
+    "name": "Giro di \u0412\u043a\u044a\u0449\u0438",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-05-10T15:09:35Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
