@@ -908,6 +908,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/18453495968",
       "year": 2026
+    },
+    {
+      "date": "2026-05-12",
+      "hour": 8,
+      "name": "Run/walk 2",
+      "subtype": "Run",
+      "type": "Run",
+      "url": "https://www.strava.com/activities/18473019888",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1593,6 +1602,15 @@
           "distance": 6053.1,
           "elevation_gain": 4.1,
           "moving_time": 3585.0
+        },
+        "2026-05-12": {
+          "activity_ids": [
+            "18473019888"
+          ],
+          "count": 1,
+          "distance": 5316.9,
+          "elevation_gain": 2.5,
+          "moving_time": 3247.0
         }
       },
       "Swim": {
@@ -1675,7 +1693,7 @@
       }
     }
   },
-  "generated_at": "2026-05-11T17:15:20.771364+00:00",
+  "generated_at": "2026-05-12T17:01:10.358044+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
