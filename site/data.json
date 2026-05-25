@@ -1765,9 +1765,9 @@
             "18634085329"
           ],
           "count": 1,
-          "distance": 7025.7,
-          "elevation_gain": 46.6,
-          "moving_time": 7177.0
+          "distance": 6838.9,
+          "elevation_gain": 46.3,
+          "moving_time": 7206.0
         }
       },
       "WeightTraining": {
@@ -1837,7 +1837,7 @@
       }
     }
   },
-  "generated_at": "2026-05-24T15:52:22.036578+00:00",
+  "generated_at": "2026-05-25T16:56:16.787965+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
