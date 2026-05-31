@@ -989,6 +989,15 @@
       "type": "Walk",
       "url": "https://www.strava.com/activities/18634085329",
       "year": 2026
+    },
+    {
+      "date": "2026-05-30",
+      "hour": 18,
+      "name": "Get pizza",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/18720482868",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1768,6 +1777,15 @@
           "distance": 6838.9,
           "elevation_gain": 46.3,
           "moving_time": 7206.0
+        },
+        "2026-05-30": {
+          "activity_ids": [
+            "18720482868"
+          ],
+          "count": 1,
+          "distance": 6996.6,
+          "elevation_gain": 88.4,
+          "moving_time": 8067.0
         }
       },
       "WeightTraining": {
@@ -1837,7 +1855,7 @@
       }
     }
   },
-  "generated_at": "2026-05-30T15:56:01.871664+00:00",
+  "generated_at": "2026-05-31T15:58:29.044727+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",

@@ -1428,5 +1428,18 @@
     "start_date_local": "2026-05-24T12:33:44Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-05-30",
+    "distance": 6996.6,
+    "elevation_gain": 88.4,
+    "id": "18720482868",
+    "moving_time": 8067.0,
+    "name": "Get pizza",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-05-30T18:56:55Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
