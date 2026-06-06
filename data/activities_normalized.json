@@ -1441,5 +1441,18 @@
     "start_date_local": "2026-05-30T18:56:55Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-06-06",
+    "distance": 11208.2,
+    "elevation_gain": 86.6,
+    "id": "18806182710",
+    "moving_time": 1909.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-06-06T11:07:48Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
