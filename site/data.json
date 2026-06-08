@@ -1007,6 +1007,24 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/18806182710",
       "year": 2026
+    },
+    {
+      "date": "2026-06-07",
+      "hour": 20,
+      "name": "\u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a <=> \u0414\u043e\u043b\u043d\u043e \u0418\u0437\u0432\u043e\u0440\u043e\u0432\u043e",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18828792123",
+      "year": 2026
+    },
+    {
+      "date": "2026-06-08",
+      "hour": 12,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18834508044",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1735,6 +1753,24 @@
           "distance": 11208.2,
           "elevation_gain": 86.6,
           "moving_time": 1909.0
+        },
+        "2026-06-07": {
+          "activity_ids": [
+            "18828792123"
+          ],
+          "count": 1,
+          "distance": 20147.2,
+          "elevation_gain": 191.4,
+          "moving_time": 3698.0
+        },
+        "2026-06-08": {
+          "activity_ids": [
+            "18834508044"
+          ],
+          "count": 1,
+          "distance": 4333.0,
+          "elevation_gain": 11.5,
+          "moving_time": 1255.0
         }
       },
       "Run": {
@@ -1873,7 +1909,7 @@
       }
     }
   },
-  "generated_at": "2026-06-07T16:04:32.867103+00:00",
+  "generated_at": "2026-06-08T17:41:21.914535+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
