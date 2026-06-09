@@ -1474,10 +1474,23 @@
     "elevation_gain": 11.5,
     "id": "18834508044",
     "moving_time": 1255.0,
-    "name": "Outdoor cycle",
+    "name": "\u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a",
     "raw_activity_type": "Ride",
     "raw_type": "Ride",
     "start_date_local": "2026-06-08T12:28:52Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-06-09",
+    "distance": 10586.9,
+    "elevation_gain": 70.2,
+    "id": "18852213394",
+    "moving_time": 1730.0,
+    "name": "\u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a <=> \u0415\u043d\u0438\u043d\u0430",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-06-09T18:21:29Z",
     "type": "Ride",
     "year": 2026
   }
