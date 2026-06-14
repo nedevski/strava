@@ -1493,5 +1493,18 @@
     "start_date_local": "2026-06-09T18:21:29Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-06-14",
+    "distance": 18759.9,
+    "elevation_gain": 7.7,
+    "id": "18916869119",
+    "moving_time": 3688.0,
+    "name": "Mentormate Picnic",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-06-14T10:54:59Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
