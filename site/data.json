@@ -1043,6 +1043,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/18916869119",
       "year": 2026
+    },
+    {
+      "date": "2026-06-15",
+      "hour": 19,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/18931975907",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1807,6 +1816,15 @@
           "distance": 18759.9,
           "elevation_gain": 7.7,
           "moving_time": 3688.0
+        },
+        "2026-06-15": {
+          "activity_ids": [
+            "18931975907"
+          ],
+          "count": 1,
+          "distance": 1760.4,
+          "elevation_gain": 0.0,
+          "moving_time": 462.0
         }
       },
       "Run": {
@@ -1945,7 +1963,7 @@
       }
     }
   },
-  "generated_at": "2026-06-14T16:15:17.643258+00:00",
+  "generated_at": "2026-06-15T18:58:43.655396+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
