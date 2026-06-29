@@ -1052,6 +1052,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/18931975907",
       "year": 2026
+    },
+    {
+      "date": "2026-06-26",
+      "hour": 11,
+      "name": "Keramoti",
+      "subtype": "Swim",
+      "type": "Swim",
+      "url": "https://www.strava.com/activities/19103460058",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1856,6 +1865,15 @@
           "distance": 1025.0,
           "elevation_gain": 0.0,
           "moving_time": 3766.0
+        },
+        "2026-06-26": {
+          "activity_ids": [
+            "19103460058"
+          ],
+          "count": 1,
+          "distance": 0.0,
+          "elevation_gain": 0.0,
+          "moving_time": 1200.0
         }
       },
       "Walk": {
@@ -1963,7 +1981,7 @@
       }
     }
   },
-  "generated_at": "2026-06-28T16:02:17.378077+00:00",
+  "generated_at": "2026-06-29T17:25:34.786271+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
