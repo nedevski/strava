@@ -1532,5 +1532,18 @@
     "start_date_local": "2026-06-26T11:52:10Z",
     "type": "Swim",
     "year": 2026
+  },
+  {
+    "date": "2026-07-01",
+    "distance": 7874.3,
+    "elevation_gain": 6.8,
+    "id": "19134959215",
+    "moving_time": 2180.0,
+    "name": "Errand run",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-07-01T12:03:29Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
