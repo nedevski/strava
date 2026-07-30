@@ -1081,6 +1081,60 @@
       "year": 2026
     },
     {
+      "date": "2026-07-09",
+      "hour": 9,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19240603296",
+      "year": 2026
+    },
+    {
+      "date": "2026-07-09",
+      "hour": 14,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19242085565",
+      "year": 2026
+    },
+    {
+      "date": "2026-07-18",
+      "hour": 14,
+      "name": "Outdoor walk",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/19361917272",
+      "year": 2026
+    },
+    {
+      "date": "2026-07-21",
+      "hour": 10,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19399627101",
+      "year": 2026
+    },
+    {
+      "date": "2026-07-21",
+      "hour": 14,
+      "name": "\u0411\u0443\u0440\u0433\u0430\u0441 - \u041f\u043e\u043c\u043e\u0440\u0438\u0435",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19406263787",
+      "year": 2026
+    },
+    {
+      "date": "2026-07-23",
+      "hour": 10,
+      "name": "Morning Kayak",
+      "subtype": "Kayaking",
+      "type": "Kayaking",
+      "url": "https://www.strava.com/activities/19429170665",
+      "year": 2026
+    },
+    {
       "date": "2026-07-24",
       "hour": 9,
       "name": "Outdoor cycle",
@@ -1659,6 +1713,17 @@
       }
     },
     "2026": {
+      "Kayaking": {
+        "2026-07-23": {
+          "activity_ids": [
+            "19429170665"
+          ],
+          "count": 1,
+          "distance": 7185.0,
+          "elevation_gain": 20.9,
+          "moving_time": 6617.0
+        }
+      },
       "Ride": {
         "2026-03-14": {
           "activity_ids": [
@@ -1916,6 +1981,26 @@
           "elevation_gain": 23.9,
           "moving_time": 4743.0
         },
+        "2026-07-09": {
+          "activity_ids": [
+            "19240603296",
+            "19242085565"
+          ],
+          "count": 2,
+          "distance": 56949.6,
+          "elevation_gain": 57.0,
+          "moving_time": 11299.0
+        },
+        "2026-07-21": {
+          "activity_ids": [
+            "19399627101",
+            "19406263787"
+          ],
+          "count": 2,
+          "distance": 58070.3,
+          "elevation_gain": 238.60000000000002,
+          "moving_time": 15019.0
+        },
         "2026-07-24": {
           "activity_ids": [
             "19441940775"
@@ -2030,6 +2115,15 @@
           "distance": 6996.6,
           "elevation_gain": 88.4,
           "moving_time": 8067.0
+        },
+        "2026-07-18": {
+          "activity_ids": [
+            "19361917272"
+          ],
+          "count": 1,
+          "distance": 2965.8,
+          "elevation_gain": 0.0,
+          "moving_time": 2184.0
         }
       },
       "WeightTraining": {
@@ -2099,13 +2193,17 @@
       }
     }
   },
-  "generated_at": "2026-07-30T19:30:27.279757+00:00",
+  "generated_at": "2026-07-30T19:37:42.672336+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
   "source": "strava",
   "strava_profile_url": "https://www.strava.com/athletes/8353858",
   "type_meta": {
+    "Kayaking": {
+      "accent": "#00f5d4",
+      "label": "Kayaking"
+    },
     "Ride": {
       "accent": "#05ffa1",
       "label": "Ride"
@@ -2128,6 +2226,7 @@
     }
   },
   "types": [
+    "Kayaking",
     "Ride",
     "Run",
     "Swim",

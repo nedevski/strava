@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-30T19:30:27.276376+00:00",
+  "generated_at": "2026-07-30T19:37:42.668401+00:00",
   "years": {
     "2025": {
       "Ride": {
@@ -533,6 +533,17 @@
       }
     },
     "2026": {
+      "Kayaking": {
+        "2026-07-23": {
+          "activity_ids": [
+            "19429170665"
+          ],
+          "count": 1,
+          "distance": 7185.0,
+          "elevation_gain": 20.9,
+          "moving_time": 6617.0
+        }
+      },
       "Ride": {
         "2026-03-14": {
           "activity_ids": [
@@ -790,6 +801,26 @@
           "elevation_gain": 23.9,
           "moving_time": 4743.0
         },
+        "2026-07-09": {
+          "activity_ids": [
+            "19240603296",
+            "19242085565"
+          ],
+          "count": 2,
+          "distance": 56949.6,
+          "elevation_gain": 57.0,
+          "moving_time": 11299.0
+        },
+        "2026-07-21": {
+          "activity_ids": [
+            "19399627101",
+            "19406263787"
+          ],
+          "count": 2,
+          "distance": 58070.3,
+          "elevation_gain": 238.60000000000002,
+          "moving_time": 15019.0
+        },
         "2026-07-24": {
           "activity_ids": [
             "19441940775"
@@ -904,6 +935,15 @@
           "distance": 6996.6,
           "elevation_gain": 88.4,
           "moving_time": 8067.0
+        },
+        "2026-07-18": {
+          "activity_ids": [
+            "19361917272"
+          ],
+          "count": 1,
+          "distance": 2965.8,
+          "elevation_gain": 0.0,
+          "moving_time": 2184.0
         }
       },
       "WeightTraining": {
