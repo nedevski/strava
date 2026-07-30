@@ -1079,6 +1079,51 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/19153163630",
       "year": 2026
+    },
+    {
+      "date": "2026-07-24",
+      "hour": 9,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19441940775",
+      "year": 2026
+    },
+    {
+      "date": "2026-07-27",
+      "hour": 15,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19487711957",
+      "year": 2026
+    },
+    {
+      "date": "2026-07-29",
+      "hour": 10,
+      "name": "Morning Ride",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19511244974",
+      "year": 2026
+    },
+    {
+      "date": "2026-07-29",
+      "hour": 13,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19528882763",
+      "year": 2026
+    },
+    {
+      "date": "2026-07-30",
+      "hour": 16,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19531521831",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -1870,6 +1915,43 @@
           "distance": 24617.3,
           "elevation_gain": 23.9,
           "moving_time": 4743.0
+        },
+        "2026-07-24": {
+          "activity_ids": [
+            "19441940775"
+          ],
+          "count": 1,
+          "distance": 13995.3,
+          "elevation_gain": 32.3,
+          "moving_time": 2676.0
+        },
+        "2026-07-27": {
+          "activity_ids": [
+            "19487711957"
+          ],
+          "count": 1,
+          "distance": 13167.6,
+          "elevation_gain": 32.7,
+          "moving_time": 2904.0
+        },
+        "2026-07-29": {
+          "activity_ids": [
+            "19511244974",
+            "19528882763"
+          ],
+          "count": 2,
+          "distance": 13979.7,
+          "elevation_gain": 7.5,
+          "moving_time": 3063.0
+        },
+        "2026-07-30": {
+          "activity_ids": [
+            "19531521831"
+          ],
+          "count": 1,
+          "distance": 22121.9,
+          "elevation_gain": 19.4,
+          "moving_time": 4759.0
         }
       },
       "Run": {
@@ -2017,7 +2099,7 @@
       }
     }
   },
-  "generated_at": "2026-07-07T17:03:09.700321+00:00",
+  "generated_at": "2026-07-30T19:30:27.279757+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",

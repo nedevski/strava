@@ -1558,5 +1558,70 @@
     "start_date_local": "2026-07-02T18:42:24Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-07-24",
+    "distance": 13995.3,
+    "elevation_gain": 32.3,
+    "id": "19441940775",
+    "moving_time": 2676.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-07-24T09:53:26Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-07-27",
+    "distance": 13167.6,
+    "elevation_gain": 32.7,
+    "id": "19487711957",
+    "moving_time": 2904.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-07-27T15:49:33Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-07-29",
+    "distance": 3640.0,
+    "elevation_gain": 3.0,
+    "id": "19511244974",
+    "moving_time": 904.0,
+    "name": "Morning Ride",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-07-29T10:36:14Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-07-29",
+    "distance": 10339.7,
+    "elevation_gain": 4.5,
+    "id": "19528882763",
+    "moving_time": 2159.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-07-29T13:49:44Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-07-30",
+    "distance": 22121.9,
+    "elevation_gain": 19.4,
+    "id": "19531521831",
+    "moving_time": 4759.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-07-30T16:10:12Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
