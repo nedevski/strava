@@ -1740,5 +1740,44 @@
     "start_date_local": "2026-08-03T22:16:54Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-08-04",
+    "distance": 10290.0,
+    "elevation_gain": 4.7,
+    "id": "19601113880",
+    "moving_time": 2011.0,
+    "name": "Evening Ride",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-04T20:08:44Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-08-04",
+    "distance": 4830.0,
+    "elevation_gain": 2.2,
+    "id": "19603559472",
+    "moving_time": 4491.0,
+    "name": "Night Walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-08-04T22:41:35Z",
+    "type": "Walk",
+    "year": 2026
+  },
+  {
+    "date": "2026-08-05",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "19610990850",
+    "moving_time": 1860.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-08-05T13:55:32Z",
+    "type": "WeightTraining",
+    "year": 2026
   }
 ]
