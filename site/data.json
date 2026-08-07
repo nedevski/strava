@@ -1232,6 +1232,24 @@
       "type": "WeightTraining",
       "url": "https://www.strava.com/activities/19610990850",
       "year": 2026
+    },
+    {
+      "date": "2026-08-07",
+      "hour": 10,
+      "name": "Strength",
+      "subtype": "WeightTraining",
+      "type": "WeightTraining",
+      "url": "https://www.strava.com/activities/19637620873",
+      "year": 2026
+    },
+    {
+      "date": "2026-08-07",
+      "hour": 16,
+      "name": "Hot as shit",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19641623537",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -2109,6 +2127,15 @@
           "distance": 10290.0,
           "elevation_gain": 4.7,
           "moving_time": 2011.0
+        },
+        "2026-08-07": {
+          "activity_ids": [
+            "19641623537"
+          ],
+          "count": 1,
+          "distance": 7784.2,
+          "elevation_gain": 3.2,
+          "moving_time": 1792.0
         }
       },
       "Run": {
@@ -2297,11 +2324,20 @@
           "distance": 0.0,
           "elevation_gain": 0.0,
           "moving_time": 1860.0
+        },
+        "2026-08-07": {
+          "activity_ids": [
+            "19637620873"
+          ],
+          "count": 1,
+          "distance": 0.0,
+          "elevation_gain": 0.0,
+          "moving_time": 3076.0
         }
       }
     }
   },
-  "generated_at": "2026-08-05T16:24:20.250861+00:00",
+  "generated_at": "2026-08-07T15:40:41.708343+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",

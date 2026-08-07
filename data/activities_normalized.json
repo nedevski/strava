@@ -1779,5 +1779,31 @@
     "start_date_local": "2026-08-05T13:55:32Z",
     "type": "WeightTraining",
     "year": 2026
+  },
+  {
+    "date": "2026-08-07",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "19637620873",
+    "moving_time": 3076.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-08-07T10:59:20Z",
+    "type": "WeightTraining",
+    "year": 2026
+  },
+  {
+    "date": "2026-08-07",
+    "distance": 7784.2,
+    "elevation_gain": 3.2,
+    "id": "19641623537",
+    "moving_time": 1792.0,
+    "name": "Hot as shit",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-07T16:04:05Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
