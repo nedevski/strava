@@ -1844,5 +1844,44 @@
     "start_date_local": "2026-08-12T07:12:12Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-08-14",
+    "distance": 28078.2,
+    "elevation_gain": 196.6,
+    "id": "19734487058",
+    "moving_time": 4663.0,
+    "name": "\u041e\u0441\u043c\u0438\u0447\u043a\u0430\u0442\u0430 - \u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-14T07:50:29Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-08-14",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "19735474249",
+    "moving_time": 1965.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-08-14T10:23:23Z",
+    "type": "WeightTraining",
+    "year": 2026
+  },
+  {
+    "date": "2026-08-14",
+    "distance": 4817.7,
+    "elevation_gain": 12.2,
+    "id": "19738840100",
+    "moving_time": 1331.0,
+    "name": "\u041e\u043f\u0442\u0438\u043a\u0438 \u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-14T15:08:04Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
