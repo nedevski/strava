@@ -1961,5 +1961,44 @@
     "start_date_local": "2026-08-20T07:29:55Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-08-20",
+    "distance": 8736.6,
+    "elevation_gain": 11.6,
+    "id": "19825084300",
+    "moving_time": 1948.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-20T16:44:16Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-08-21",
+    "distance": 10638.0,
+    "elevation_gain": 17.9,
+    "id": "19832927606",
+    "moving_time": 2088.0,
+    "name": "Outdoor cycle \ud83c\udf5e",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-21T08:57:54Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-08-21",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "19833594781",
+    "moving_time": 2165.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-08-21T10:31:17Z",
+    "type": "WeightTraining",
+    "year": 2026
   }
 ]
