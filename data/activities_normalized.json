@@ -2000,5 +2000,18 @@
     "start_date_local": "2026-08-21T10:31:17Z",
     "type": "WeightTraining",
     "year": 2026
+  },
+  {
+    "date": "2026-08-21",
+    "distance": 4855.0,
+    "elevation_gain": 20.9,
+    "id": "19842146556",
+    "moving_time": 4080.0,
+    "name": "MM Party",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-08-21T19:49:33Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]

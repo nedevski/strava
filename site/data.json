@@ -1385,6 +1385,15 @@
       "type": "WeightTraining",
       "url": "https://www.strava.com/activities/19833594781",
       "year": 2026
+    },
+    {
+      "date": "2026-08-21",
+      "hour": 19,
+      "name": "MM Party",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/19842146556",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -2459,6 +2468,15 @@
           "distance": 4288.4,
           "elevation_gain": 12.5,
           "moving_time": 3444.0
+        },
+        "2026-08-21": {
+          "activity_ids": [
+            "19842146556"
+          ],
+          "count": 1,
+          "distance": 4855.0,
+          "elevation_gain": 20.9,
+          "moving_time": 4080.0
         }
       },
       "WeightTraining": {
@@ -2591,7 +2609,7 @@
       }
     }
   },
-  "generated_at": "2026-08-21T15:20:02.277765+00:00",
+  "generated_at": "2026-08-22T15:08:07.809377+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
