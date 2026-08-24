@@ -2026,5 +2026,18 @@
     "start_date_local": "2026-08-23T11:14:23Z",
     "type": "WeightTraining",
     "year": 2026
+  },
+  {
+    "date": "2026-08-24",
+    "distance": 25317.3,
+    "elevation_gain": 21.7,
+    "id": "19873530406",
+    "moving_time": 4029.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-24T07:35:41Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
