@@ -1421,6 +1421,24 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/19888312926",
       "year": 2026
+    },
+    {
+      "date": "2026-08-26",
+      "hour": 7,
+      "name": "Recovery ride",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19903330269",
+      "year": 2026
+    },
+    {
+      "date": "2026-08-26",
+      "hour": 12,
+      "name": "New glasses test ride",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/19905621258",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -2381,6 +2399,16 @@
           "distance": 16485.2,
           "elevation_gain": 6.4,
           "moving_time": 2906.0
+        },
+        "2026-08-26": {
+          "activity_ids": [
+            "19903330269",
+            "19905621258"
+          ],
+          "count": 2,
+          "distance": 44563.7,
+          "elevation_gain": 44.7,
+          "moving_time": 8574.0
         }
       },
       "Run": {
@@ -2663,7 +2691,7 @@
       }
     }
   },
-  "generated_at": "2026-08-25T15:30:39.414843+00:00",
+  "generated_at": "2026-08-26T16:07:06.855736+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",

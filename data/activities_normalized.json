@@ -2052,5 +2052,31 @@
     "start_date_local": "2026-08-25T08:37:07Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-08-26",
+    "distance": 30112.3,
+    "elevation_gain": 22.7,
+    "id": "19903330269",
+    "moving_time": 5646.0,
+    "name": "Recovery ride",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-26T07:16:58Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-08-26",
+    "distance": 14451.4,
+    "elevation_gain": 22.0,
+    "id": "19905621258",
+    "moving_time": 2928.0,
+    "name": "New glasses test ride",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-26T12:19:31Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
