@@ -2104,5 +2104,31 @@
     "start_date_local": "2026-08-27T14:02:48Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-08-28",
+    "distance": 30129.4,
+    "elevation_gain": 22.6,
+    "id": "19931657877",
+    "moving_time": 5023.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-28T07:16:05Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-08-28",
+    "distance": 7906.5,
+    "elevation_gain": 3.0,
+    "id": "19937826015",
+    "moving_time": 1514.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-08-28T18:14:18Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
