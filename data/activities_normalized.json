@@ -2156,5 +2156,44 @@
     "start_date_local": "2026-09-04T15:45:42Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-09-05",
+    "distance": 5833.3,
+    "elevation_gain": 24.6,
+    "id": "20050789786",
+    "moving_time": 4354.0,
+    "name": "Outdoor walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-09-05T19:37:16Z",
+    "type": "Walk",
+    "year": 2026
+  },
+  {
+    "date": "2026-09-06",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "20058032073",
+    "moving_time": 2235.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-09-06T12:21:05Z",
+    "type": "WeightTraining",
+    "year": 2026
+  },
+  {
+    "date": "2026-09-06",
+    "distance": 14019.7,
+    "elevation_gain": 91.7,
+    "id": "20063537033",
+    "moving_time": 2621.0,
+    "name": "\u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a <=> \u044f\u0437. \u041a\u043e\u043f\u0440\u0438\u043d\u043a\u0430",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-09-06T18:04:17Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]

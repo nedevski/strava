@@ -1493,6 +1493,33 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/20033581643",
       "year": 2026
+    },
+    {
+      "date": "2026-09-05",
+      "hour": 19,
+      "name": "Outdoor walk",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/20050789786",
+      "year": 2026
+    },
+    {
+      "date": "2026-09-06",
+      "hour": 12,
+      "name": "Strength",
+      "subtype": "WeightTraining",
+      "type": "WeightTraining",
+      "url": "https://www.strava.com/activities/20058032073",
+      "year": 2026
+    },
+    {
+      "date": "2026-09-06",
+      "hour": 18,
+      "name": "\u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a <=> \u044f\u0437. \u041a\u043e\u043f\u0440\u0438\u043d\u043a\u0430",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/20063537033",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -2491,6 +2518,15 @@
           "distance": 13982.0,
           "elevation_gain": 113.1,
           "moving_time": 2726.0
+        },
+        "2026-09-06": {
+          "activity_ids": [
+            "20063537033"
+          ],
+          "count": 1,
+          "distance": 14019.7,
+          "elevation_gain": 91.7,
+          "moving_time": 2621.0
         }
       },
       "Run": {
@@ -2632,6 +2668,15 @@
           "distance": 4855.0,
           "elevation_gain": 20.9,
           "moving_time": 4080.0
+        },
+        "2026-09-05": {
+          "activity_ids": [
+            "20050789786"
+          ],
+          "count": 1,
+          "distance": 5833.3,
+          "elevation_gain": 24.6,
+          "moving_time": 4354.0
         }
       },
       "WeightTraining": {
@@ -2787,11 +2832,20 @@
           "distance": 0.0,
           "elevation_gain": 0.0,
           "moving_time": 2380.0
+        },
+        "2026-09-06": {
+          "activity_ids": [
+            "20058032073"
+          ],
+          "count": 1,
+          "distance": 0.0,
+          "elevation_gain": 0.0,
+          "moving_time": 2235.0
         }
       }
     }
   },
-  "generated_at": "2026-09-05T16:58:55.240695+00:00",
+  "generated_at": "2026-09-06T17:23:03.271954+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
