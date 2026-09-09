@@ -1529,6 +1529,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/20070719046",
       "year": 2026
+    },
+    {
+      "date": "2026-09-09",
+      "hour": 11,
+      "name": "Strength",
+      "subtype": "WeightTraining",
+      "type": "WeightTraining",
+      "url": "https://www.strava.com/activities/20099524240",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -2859,11 +2868,20 @@
           "distance": 0.0,
           "elevation_gain": 0.0,
           "moving_time": 2235.0
+        },
+        "2026-09-09": {
+          "activity_ids": [
+            "20099524240"
+          ],
+          "count": 1,
+          "distance": 0.0,
+          "elevation_gain": 0.0,
+          "moving_time": 1955.0
         }
       }
     }
   },
-  "generated_at": "2026-09-08T18:09:13.226417+00:00",
+  "generated_at": "2026-09-09T18:03:49.734327+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
