@@ -2273,5 +2273,44 @@
     "start_date_local": "2026-09-13T16:09:46Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-09-14",
+    "distance": 3367.4,
+    "elevation_gain": 0.0,
+    "id": "20176276164",
+    "moving_time": 2061.0,
+    "name": "Emergency 4k steps",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-09-14T23:23:44Z",
+    "type": "Walk",
+    "year": 2026
+  },
+  {
+    "date": "2026-09-15",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "20181481661",
+    "moving_time": 2245.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-09-15T10:56:52Z",
+    "type": "WeightTraining",
+    "year": 2026
+  },
+  {
+    "date": "2026-09-15",
+    "distance": 13483.9,
+    "elevation_gain": 8.2,
+    "id": "20186187316",
+    "moving_time": 2719.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-09-15T17:08:56Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
