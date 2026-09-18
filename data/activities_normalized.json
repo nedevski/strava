@@ -2351,5 +2351,44 @@
     "start_date_local": "2026-09-17T15:02:47Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-09-18",
+    "distance": 2494.1,
+    "elevation_gain": 2.6,
+    "id": "20223616781",
+    "moving_time": 534.0,
+    "name": "Dentist",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-09-18T09:48:43Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-09-18",
+    "distance": 1346.1,
+    "elevation_gain": 7.7,
+    "id": "20227077913",
+    "moving_time": 365.0,
+    "name": "\u0413\u0438\u0440\u043e\u0441 \u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a \u0412\u0440\u044a\u0449\u0430\u043d\u0435",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-09-18T16:14:42Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-09-18",
+    "distance": 13343.6,
+    "elevation_gain": 83.9,
+    "id": "20228993417",
+    "moving_time": 2538.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-09-18T18:22:09Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]

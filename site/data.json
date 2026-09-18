@@ -1628,6 +1628,33 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/20213633977",
       "year": 2026
+    },
+    {
+      "date": "2026-09-18",
+      "hour": 9,
+      "name": "Dentist",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/20223616781",
+      "year": 2026
+    },
+    {
+      "date": "2026-09-18",
+      "hour": 16,
+      "name": "\u0413\u0438\u0440\u043e\u0441 \u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a \u0412\u0440\u044a\u0449\u0430\u043d\u0435",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/20227077913",
+      "year": 2026
+    },
+    {
+      "date": "2026-09-18",
+      "hour": 18,
+      "name": "Outdoor cycle",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/20228993417",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -2689,6 +2716,17 @@
           "distance": 8380.7,
           "elevation_gain": 2.6,
           "moving_time": 1761.0
+        },
+        "2026-09-18": {
+          "activity_ids": [
+            "20223616781",
+            "20227077913",
+            "20228993417"
+          ],
+          "count": 3,
+          "distance": 17183.8,
+          "elevation_gain": 94.2,
+          "moving_time": 3437.0
         }
       },
       "Run": {
@@ -3061,7 +3099,7 @@
       }
     }
   },
-  "generated_at": "2026-09-17T18:38:51.023196+00:00",
+  "generated_at": "2026-09-18T17:56:00.596768+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
