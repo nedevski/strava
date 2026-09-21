@@ -1682,6 +1682,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/20251898504",
       "year": 2026
+    },
+    {
+      "date": "2026-09-21",
+      "hour": 20,
+      "name": "Evening Walk",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/20271025842",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -2949,6 +2958,15 @@
           "distance": 2299.6,
           "elevation_gain": 8.4,
           "moving_time": 1934.0
+        },
+        "2026-09-21": {
+          "activity_ids": [
+            "20271025842"
+          ],
+          "count": 1,
+          "distance": 4510.0,
+          "elevation_gain": 18.2,
+          "moving_time": 3409.0
         }
       },
       "WeightTraining": {
@@ -3153,7 +3171,7 @@
       }
     }
   },
-  "generated_at": "2026-09-20T17:45:17.047385+00:00",
+  "generated_at": "2026-09-21T19:46:27.347282+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
