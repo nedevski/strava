@@ -1727,6 +1727,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/20311290913",
       "year": 2026
+    },
+    {
+      "date": "2026-09-25",
+      "hour": 14,
+      "name": "Afternoon Ride",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/20324123277",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -2826,6 +2835,15 @@
           "distance": 42920.0,
           "elevation_gain": 159.9,
           "moving_time": 6851.0
+        },
+        "2026-09-25": {
+          "activity_ids": [
+            "20324123277"
+          ],
+          "count": 1,
+          "distance": 28040.0,
+          "elevation_gain": 183.4,
+          "moving_time": 6914.0
         }
       },
       "Run": {
@@ -3243,7 +3261,7 @@
       }
     }
   },
-  "generated_at": "2026-09-24T18:42:59.302089+00:00",
+  "generated_at": "2026-09-25T18:59:09.475067+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
