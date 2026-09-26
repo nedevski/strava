@@ -2507,5 +2507,18 @@
     "start_date_local": "2026-09-25T14:15:08Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-09-26",
+    "distance": 4570.0,
+    "elevation_gain": 15.8,
+    "id": "20337654427",
+    "moving_time": 4014.0,
+    "name": "Lidl Walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-09-26T15:42:42Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
