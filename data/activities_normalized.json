@@ -2520,5 +2520,44 @@
     "start_date_local": "2026-09-26T15:42:42Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-09-27",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "20347145248",
+    "moving_time": 3140.0,
+    "name": "Morning Weight Training",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-09-27T10:55:03Z",
+    "type": "WeightTraining",
+    "year": 2026
+  },
+  {
+    "date": "2026-09-27",
+    "distance": 11919.0,
+    "elevation_gain": 73.8,
+    "id": "20351185020",
+    "moving_time": 2381.0,
+    "name": "\u041a\u0430\u0437\u0430\u043d\u043b\u044a\u043a <=> \u0415\u043d\u0438\u043d\u0430 (\u0441 \u0432\u044f\u0442\u044a\u0440)",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-09-27T15:14:11Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-09-27",
+    "distance": 8263.3,
+    "elevation_gain": 25.2,
+    "id": "20354333859",
+    "moving_time": 3906.0,
+    "name": "Outdoor walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-09-27T17:11:46Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
