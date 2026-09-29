@@ -2572,5 +2572,18 @@
     "start_date_local": "2026-09-28T19:06:33Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-09-29",
+    "distance": 3902.2,
+    "elevation_gain": 2.1,
+    "id": "20379975578",
+    "moving_time": 3229.0,
+    "name": "Quick 5k (steps lol)",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-09-29T17:51:54Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
