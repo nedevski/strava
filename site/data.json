@@ -1790,6 +1790,33 @@
       "type": "Walk",
       "url": "https://www.strava.com/activities/20379975578",
       "year": 2026
+    },
+    {
+      "date": "2026-09-30",
+      "hour": 20,
+      "name": "D\u00e9nia",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/20397955329",
+      "year": 2026
+    },
+    {
+      "date": "2026-10-01",
+      "hour": 7,
+      "name": "Sunrise Walk",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/20403164514",
+      "year": 2026
+    },
+    {
+      "date": "2026-10-01",
+      "hour": 11,
+      "name": "Playa de Gandia <=> Oliva",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/20405948928",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -2916,6 +2943,15 @@
           "distance": 13163.2,
           "elevation_gain": 23.9,
           "moving_time": 2955.0
+        },
+        "2026-10-01": {
+          "activity_ids": [
+            "20405948928"
+          ],
+          "count": 1,
+          "distance": 42993.1,
+          "elevation_gain": 71.5,
+          "moving_time": 9585.0
         }
       },
       "Run": {
@@ -3138,6 +3174,24 @@
           "distance": 3902.2,
           "elevation_gain": 2.1,
           "moving_time": 3229.0
+        },
+        "2026-09-30": {
+          "activity_ids": [
+            "20397955329"
+          ],
+          "count": 1,
+          "distance": 1699.1,
+          "elevation_gain": 4.3,
+          "moving_time": 1789.0
+        },
+        "2026-10-01": {
+          "activity_ids": [
+            "20403164514"
+          ],
+          "count": 1,
+          "distance": 5168.3,
+          "elevation_gain": 6.8,
+          "moving_time": 5069.0
         }
       },
       "WeightTraining": {
@@ -3369,7 +3423,7 @@
       }
     }
   },
-  "generated_at": "2026-09-30T19:41:02.521558+00:00",
+  "generated_at": "2026-10-01T19:56:41.867779+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",

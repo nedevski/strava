@@ -2585,5 +2585,44 @@
     "start_date_local": "2026-09-29T17:51:54Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-09-30",
+    "distance": 1699.1,
+    "elevation_gain": 4.3,
+    "id": "20397955329",
+    "moving_time": 1789.0,
+    "name": "D\u00e9nia",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-09-30T20:22:18Z",
+    "type": "Walk",
+    "year": 2026
+  },
+  {
+    "date": "2026-10-01",
+    "distance": 5168.3,
+    "elevation_gain": 6.8,
+    "id": "20403164514",
+    "moving_time": 5069.0,
+    "name": "Sunrise Walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-10-01T07:45:04Z",
+    "type": "Walk",
+    "year": 2026
+  },
+  {
+    "date": "2026-10-01",
+    "distance": 42993.1,
+    "elevation_gain": 71.5,
+    "id": "20405948928",
+    "moving_time": 9585.0,
+    "name": "Playa de Gandia <=> Oliva",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-10-01T11:19:29Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
