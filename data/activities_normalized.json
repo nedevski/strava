@@ -2624,5 +2624,31 @@
     "start_date_local": "2026-10-01T11:19:29Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-10-03",
+    "distance": 2470.7,
+    "elevation_gain": 2.3,
+    "id": "20428210121",
+    "moving_time": 2928.0,
+    "name": "Outdoor walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-10-03T07:47:49Z",
+    "type": "Walk",
+    "year": 2026
+  },
+  {
+    "date": "2026-10-03",
+    "distance": 4189.0,
+    "elevation_gain": 26.1,
+    "id": "20436464146",
+    "moving_time": 3846.0,
+    "name": "Alicante walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-10-03T14:56:21Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]

@@ -1817,6 +1817,24 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/20405948928",
       "year": 2026
+    },
+    {
+      "date": "2026-10-03",
+      "hour": 7,
+      "name": "Outdoor walk",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/20428210121",
+      "year": 2026
+    },
+    {
+      "date": "2026-10-03",
+      "hour": 14,
+      "name": "Alicante walk",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/20436464146",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -3192,6 +3210,16 @@
           "distance": 5168.3,
           "elevation_gain": 6.8,
           "moving_time": 5069.0
+        },
+        "2026-10-03": {
+          "activity_ids": [
+            "20428210121",
+            "20436464146"
+          ],
+          "count": 2,
+          "distance": 6659.7,
+          "elevation_gain": 28.400000000000002,
+          "moving_time": 6774.0
         }
       },
       "WeightTraining": {
@@ -3423,7 +3451,7 @@
       }
     }
   },
-  "generated_at": "2026-10-02T19:35:36.172845+00:00",
+  "generated_at": "2026-10-03T18:22:38.927211+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
