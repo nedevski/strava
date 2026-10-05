@@ -2663,5 +2663,18 @@
     "start_date_local": "2026-10-04T07:51:57Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-10-05",
+    "distance": 6255.9,
+    "elevation_gain": 11.4,
+    "id": "20456597976",
+    "moving_time": 5072.0,
+    "name": "Sunrise walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-10-05T07:56:59Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
