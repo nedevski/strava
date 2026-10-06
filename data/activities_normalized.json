@@ -2676,5 +2676,31 @@
     "start_date_local": "2026-10-05T07:56:59Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-10-06",
+    "distance": 3710.0,
+    "elevation_gain": 2.7,
+    "id": "20470074551",
+    "moving_time": 2801.0,
+    "name": "No sunset walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-10-06T08:08:09Z",
+    "type": "Walk",
+    "year": 2026
+  },
+  {
+    "date": "2026-10-06",
+    "distance": 6110.1,
+    "elevation_gain": 19.7,
+    "id": "20474908724",
+    "moving_time": 6600.0,
+    "name": "Outdoor walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-10-06T12:27:26Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
