@@ -1866,7 +1866,7 @@
     {
       "date": "2026-10-06",
       "hour": 12,
-      "name": "Outdoor walk",
+      "name": "Valencia walk",
       "subtype": "Walk",
       "type": "Walk",
       "url": "https://www.strava.com/activities/20474908724",
@@ -3515,7 +3515,7 @@
       }
     }
   },
-  "generated_at": "2026-10-06T19:53:06.022982+00:00",
+  "generated_at": "2026-10-07T20:14:24.964161+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
