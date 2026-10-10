@@ -1889,6 +1889,15 @@
       "type": "Walk",
       "url": "https://www.strava.com/activities/20513844293",
       "year": 2026
+    },
+    {
+      "date": "2026-10-10",
+      "hour": 11,
+      "name": "Outdoor walk",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/20526369839",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -3320,6 +3329,15 @@
           "distance": 2717.6,
           "elevation_gain": 6.0,
           "moving_time": 2701.0
+        },
+        "2026-10-10": {
+          "activity_ids": [
+            "20526369839"
+          ],
+          "count": 1,
+          "distance": 4571.0,
+          "elevation_gain": 4.6,
+          "moving_time": 4108.0
         }
       },
       "WeightTraining": {
@@ -3551,7 +3569,7 @@
       }
     }
   },
-  "generated_at": "2026-10-09T19:52:00.161121+00:00",
+  "generated_at": "2026-10-10T18:59:04.393160+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
