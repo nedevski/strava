@@ -2767,5 +2767,31 @@
     "start_date_local": "2026-10-12T16:20:11Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-10-13",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "20564517992",
+    "moving_time": 2435.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-10-13T10:47:33Z",
+    "type": "WeightTraining",
+    "year": 2026
+  },
+  {
+    "date": "2026-10-13",
+    "distance": 2291.0,
+    "elevation_gain": 4.9,
+    "id": "20570884959",
+    "moving_time": 409.0,
+    "name": "Emergency pizza ingredients \ud83c\udf27\ufe0f",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-10-13T20:03:50Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]

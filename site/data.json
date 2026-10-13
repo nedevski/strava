@@ -1916,6 +1916,24 @@
       "type": "Walk",
       "url": "https://www.strava.com/activities/20555022569",
       "year": 2026
+    },
+    {
+      "date": "2026-10-13",
+      "hour": 10,
+      "name": "Strength",
+      "subtype": "WeightTraining",
+      "type": "WeightTraining",
+      "url": "https://www.strava.com/activities/20564517992",
+      "year": 2026
+    },
+    {
+      "date": "2026-10-13",
+      "hour": 20,
+      "name": "Emergency pizza ingredients \ud83c\udf27\ufe0f",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/20570884959",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -3069,6 +3087,15 @@
           "distance": 70174.0,
           "elevation_gain": 164.1,
           "moving_time": 12639.0
+        },
+        "2026-10-13": {
+          "activity_ids": [
+            "20570884959"
+          ],
+          "count": 1,
+          "distance": 2291.0,
+          "elevation_gain": 4.9,
+          "moving_time": 409.0
         }
       },
       "Run": {
@@ -3601,11 +3628,20 @@
           "distance": 0.0,
           "elevation_gain": 0.0,
           "moving_time": 3140.0
+        },
+        "2026-10-13": {
+          "activity_ids": [
+            "20564517992"
+          ],
+          "count": 1,
+          "distance": 0.0,
+          "elevation_gain": 0.0,
+          "moving_time": 2435.0
         }
       }
     }
   },
-  "generated_at": "2026-10-12T22:17:07.249153+00:00",
+  "generated_at": "2026-10-13T20:24:11.834821+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
