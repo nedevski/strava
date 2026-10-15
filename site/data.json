@@ -1943,6 +1943,24 @@
       "type": "Walk",
       "url": "https://www.strava.com/activities/20582556872",
       "year": 2026
+    },
+    {
+      "date": "2026-10-15",
+      "hour": 11,
+      "name": "Strength",
+      "subtype": "WeightTraining",
+      "type": "WeightTraining",
+      "url": "https://www.strava.com/activities/20595682848",
+      "year": 2026
+    },
+    {
+      "date": "2026-10-15",
+      "hour": 16,
+      "name": "Windy as shii",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/20598162835",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -3105,6 +3123,15 @@
           "distance": 2291.0,
           "elevation_gain": 4.9,
           "moving_time": 409.0
+        },
+        "2026-10-15": {
+          "activity_ids": [
+            "20598162835"
+          ],
+          "count": 1,
+          "distance": 30043.5,
+          "elevation_gain": 28.8,
+          "moving_time": 6544.0
         }
       },
       "Run": {
@@ -3655,11 +3682,20 @@
           "distance": 0.0,
           "elevation_gain": 0.0,
           "moving_time": 2435.0
+        },
+        "2026-10-15": {
+          "activity_ids": [
+            "20595682848"
+          ],
+          "count": 1,
+          "distance": 0.0,
+          "elevation_gain": 0.0,
+          "moving_time": 1960.0
         }
       }
     }
   },
-  "generated_at": "2026-10-14T18:59:55.492105+00:00",
+  "generated_at": "2026-10-15T18:43:56.796233+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
