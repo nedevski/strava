@@ -2897,5 +2897,31 @@
     "start_date_local": "2026-10-18T15:15:48Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-10-19",
+    "distance": 51586.8,
+    "elevation_gain": 626.7,
+    "id": "20649491767",
+    "moving_time": 11609.0,
+    "name": "\u041a\u0443\u043a\u043b\u0435\u043d - \u041c\u0430\u0440\u043a\u043e\u0432\u043e - \u041f\u044a\u0440\u0432\u0435\u043d\u0435\u0446",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-10-19T16:18:06Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-10-19",
+    "distance": 5457.9,
+    "elevation_gain": 3.5,
+    "id": "20651419251",
+    "moving_time": 4392.0,
+    "name": "Outdoor walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-10-19T20:50:39Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
