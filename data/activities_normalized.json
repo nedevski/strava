@@ -2923,5 +2923,18 @@
     "start_date_local": "2026-10-19T20:50:39Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-10-21",
+    "distance": 19435.8,
+    "elevation_gain": 30.6,
+    "id": "20671400725",
+    "moving_time": 5215.0,
+    "name": "Morning Ride with Chris",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-10-21T09:00:21Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
