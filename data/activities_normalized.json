@@ -3066,5 +3066,18 @@
     "start_date_local": "2026-11-02T11:15:44Z",
     "type": "WeightTraining",
     "year": 2026
+  },
+  {
+    "date": "2026-11-03",
+    "distance": 5225.5,
+    "elevation_gain": 4.8,
+    "id": "20844614033",
+    "moving_time": 4292.0,
+    "name": "Outdoor walk \ud83c\udf27\ufe0f\ud83c\udf27\ufe0f\ud83c\udf27\ufe0f",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-11-03T17:10:28Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
