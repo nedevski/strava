@@ -2168,6 +2168,15 @@
       "type": "WeightTraining",
       "url": "https://www.strava.com/activities/20880649812",
       "year": 2026
+    },
+    {
+      "date": "2026-11-07",
+      "hour": 14,
+      "name": "\u041f\u043b\u0434 <=> \u041f\u0435\u0440\u0443\u0449\u0438\u0446\u0430 - \u0421\u0442\u0430\u043c\u0431\u043e\u043b\u0438\u0439\u0441\u043a\u0438 - \u0421\u0435\u043f\u0442\u0435\u043c\u0432\u0440\u0438",
+      "subtype": "Ride",
+      "type": "Ride",
+      "url": "https://www.strava.com/activities/20898634427",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -3411,6 +3420,15 @@
           "distance": 25190.1,
           "elevation_gain": 31.0,
           "moving_time": 4950.0
+        },
+        "2026-11-07": {
+          "activity_ids": [
+            "20898634427"
+          ],
+          "count": 1,
+          "distance": 102263.0,
+          "elevation_gain": 283.5,
+          "moving_time": 18806.0
         }
       },
       "Run": {
@@ -4109,7 +4127,7 @@
       }
     }
   },
-  "generated_at": "2026-11-06T20:38:19.082396+00:00",
+  "generated_at": "2026-11-07T19:06:26.215085+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
