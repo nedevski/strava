@@ -3144,5 +3144,44 @@
     "start_date_local": "2026-11-07T14:11:15Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-11-07",
+    "distance": 3589.6,
+    "elevation_gain": 0.0,
+    "id": "20899635765",
+    "moving_time": 2846.0,
+    "name": "Post 100km - 5k steps",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-11-07T20:51:32Z",
+    "type": "Walk",
+    "year": 2026
+  },
+  {
+    "date": "2026-11-08",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "20904227422",
+    "moving_time": 3040.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-11-08T11:02:07Z",
+    "type": "WeightTraining",
+    "year": 2026
+  },
+  {
+    "date": "2026-11-08",
+    "distance": 6338.0,
+    "elevation_gain": 2.3,
+    "id": "20908827088",
+    "moving_time": 3315.0,
+    "name": "Lunch walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-11-08T12:00:01Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
