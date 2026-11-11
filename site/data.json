@@ -2204,6 +2204,24 @@
       "type": "Walk",
       "url": "https://www.strava.com/activities/20908827088",
       "year": 2026
+    },
+    {
+      "date": "2026-11-10",
+      "hour": 22,
+      "name": "Komatevo penalty walk",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/20942242745",
+      "year": 2026
+    },
+    {
+      "date": "2026-11-11",
+      "hour": 12,
+      "name": "Strength",
+      "subtype": "WeightTraining",
+      "type": "WeightTraining",
+      "url": "https://www.strava.com/activities/20944256473",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -3851,6 +3869,15 @@
           "distance": 6338.0,
           "elevation_gain": 2.3,
           "moving_time": 3315.0
+        },
+        "2026-11-10": {
+          "activity_ids": [
+            "20942242745"
+          ],
+          "count": 1,
+          "distance": 1666.6,
+          "elevation_gain": 4.2,
+          "moving_time": 1206.0
         }
       },
       "WeightTraining": {
@@ -4177,11 +4204,20 @@
           "distance": 0.0,
           "elevation_gain": 0.0,
           "moving_time": 3040.0
+        },
+        "2026-11-11": {
+          "activity_ids": [
+            "20944256473"
+          ],
+          "count": 1,
+          "distance": 0.0,
+          "elevation_gain": 0.0,
+          "moving_time": 2960.0
         }
       }
     }
   },
-  "generated_at": "2026-11-10T21:03:33.236657+00:00",
+  "generated_at": "2026-11-11T21:37:12.668497+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
