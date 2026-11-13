@@ -2240,6 +2240,15 @@
       "type": "Ride",
       "url": "https://www.strava.com/activities/20964331013",
       "year": 2026
+    },
+    {
+      "date": "2026-11-13",
+      "hour": 13,
+      "name": "Afternoon Weight Training",
+      "subtype": "WeightTraining",
+      "type": "WeightTraining",
+      "url": "https://www.strava.com/activities/20970760380",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -4241,11 +4250,20 @@
           "distance": 0.0,
           "elevation_gain": 0.0,
           "moving_time": 2960.0
+        },
+        "2026-11-13": {
+          "activity_ids": [
+            "20970760380"
+          ],
+          "count": 1,
+          "distance": 0.0,
+          "elevation_gain": 0.0,
+          "moving_time": 2310.0
         }
       }
     }
   },
-  "generated_at": "2026-11-12T21:37:47.153104+00:00",
+  "generated_at": "2026-11-13T21:01:39.406185+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",
