@@ -3248,5 +3248,31 @@
     "start_date_local": "2026-11-13T13:04:09Z",
     "type": "WeightTraining",
     "year": 2026
+  },
+  {
+    "date": "2026-11-15",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "20993224479",
+    "moving_time": 2955.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-11-15T10:47:47Z",
+    "type": "WeightTraining",
+    "year": 2026
+  },
+  {
+    "date": "2026-11-15",
+    "distance": 52519.3,
+    "elevation_gain": 462.7,
+    "id": "20998729398",
+    "moving_time": 10675.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-11-15T13:43:20Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
