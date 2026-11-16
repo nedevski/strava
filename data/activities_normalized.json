@@ -3274,5 +3274,31 @@
     "start_date_local": "2026-11-15T13:43:20Z",
     "type": "Ride",
     "year": 2026
+  },
+  {
+    "date": "2026-11-16",
+    "distance": 14086.5,
+    "elevation_gain": 10.0,
+    "id": "21006734824",
+    "moving_time": 3167.0,
+    "name": "Trakia Reclaim",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-11-16T11:22:13Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-11-16",
+    "distance": 5267.7,
+    "elevation_gain": 3.7,
+    "id": "21012470941",
+    "moving_time": 3644.0,
+    "name": "Outdoor walk",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-11-16T19:58:56Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
