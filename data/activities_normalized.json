@@ -3300,5 +3300,44 @@
     "start_date_local": "2026-11-16T19:58:56Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-11-17",
+    "distance": 25589.8,
+    "elevation_gain": 20.5,
+    "id": "21017629508",
+    "moving_time": 4817.0,
+    "name": "Outdoor cycle",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-11-17T07:16:25Z",
+    "type": "Ride",
+    "year": 2026
+  },
+  {
+    "date": "2026-11-17",
+    "distance": 0.0,
+    "elevation_gain": 0.0,
+    "id": "21019368690",
+    "moving_time": 1855.0,
+    "name": "Strength",
+    "raw_activity_type": "WeightTraining",
+    "raw_type": "WeightTraining",
+    "start_date_local": "2026-11-17T13:03:58Z",
+    "type": "WeightTraining",
+    "year": 2026
+  },
+  {
+    "date": "2026-11-17",
+    "distance": 11559.7,
+    "elevation_gain": 5.4,
+    "id": "21024907418",
+    "moving_time": 2119.0,
+    "name": "Evening Trakia reclaim",
+    "raw_activity_type": "Ride",
+    "raw_type": "Ride",
+    "start_date_local": "2026-11-17T20:04:51Z",
+    "type": "Ride",
+    "year": 2026
   }
 ]
