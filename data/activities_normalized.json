@@ -3430,5 +3430,18 @@
     "start_date_local": "2026-11-21T17:23:27Z",
     "type": "Walk",
     "year": 2026
+  },
+  {
+    "date": "2026-11-24",
+    "distance": 3687.9,
+    "elevation_gain": 6.1,
+    "id": "21103486585",
+    "moving_time": 2901.0,
+    "name": "Outdoor walk \ud83e\udd76",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-11-24T07:45:06Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
