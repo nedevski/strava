@@ -18,7 +18,7 @@ garmin:
 
 sync:
   # Optional history limits:
-  start_date: "2025-01-01" # YYYY-MM-DD lower bound
+  #start_date: "2025-01-01" # YYYY-MM-DD lower bound
   # lookback_years: 5        # ignored when start_date is set
   recent_days: 7
   resume_backfill: true
@@ -79,7 +79,7 @@ activities:
     - VirtualRide
     - VirtualRow
     - VirtualRun
-    - Walk
+    #- Walk
     - WeightTraining
     - Wheelchair
     - Windsurf
@@ -93,8 +93,8 @@ activities:
   type_aliases: {}          # optional explicit remaps; keep empty for exact source naming
 
 units:
-  distance: "mi"   # "mi" or "km"
-  elevation: "ft"  # "ft" or "m"
+  distance: "km"   # "mi" or "km"
+  elevation: "m"  # "ft" or "m"
 
 heatmaps:
-  week_start: "sunday" # "sunday" or "monday"
+  week_start: "monday" # "sunday" or "monday"
