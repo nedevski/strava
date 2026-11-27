@@ -2411,6 +2411,15 @@
       "type": "Swim",
       "url": "https://www.strava.com/activities/21129105390",
       "year": 2026
+    },
+    {
+      "date": "2026-11-27",
+      "hour": 17,
+      "name": "Outdoor limping \ud83c\udff4\u200d\u2620\ufe0f",
+      "subtype": "Walk",
+      "type": "Walk",
+      "url": "https://www.strava.com/activities/21144501138",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -4186,6 +4195,15 @@
           "distance": 5656.4,
           "elevation_gain": 8.3,
           "moving_time": 4217.0
+        },
+        "2026-11-27": {
+          "activity_ids": [
+            "21144501138"
+          ],
+          "count": 1,
+          "distance": 3747.4,
+          "elevation_gain": 6.9,
+          "moving_time": 3616.0
         }
       },
       "WeightTraining": {
@@ -4579,7 +4597,7 @@
       }
     }
   },
-  "generated_at": "2026-11-26T23:23:10.125344+00:00",
+  "generated_at": "2026-11-27T23:01:27.970782+00:00",
   "other_bucket": "OtherSports",
   "profile_url": "https://www.strava.com/athletes/8353858",
   "repo": "nedevski/strava",

@@ -3482,5 +3482,18 @@
     "start_date_local": "2026-11-26T11:36:36Z",
     "type": "Swim",
     "year": 2026
+  },
+  {
+    "date": "2026-11-27",
+    "distance": 3747.4,
+    "elevation_gain": 6.9,
+    "id": "21144501138",
+    "moving_time": 3616.0,
+    "name": "Outdoor limping \ud83c\udff4\u200d\u2620\ufe0f",
+    "raw_activity_type": "Walk",
+    "raw_type": "Walk",
+    "start_date_local": "2026-11-27T17:20:56Z",
+    "type": "Walk",
+    "year": 2026
   }
 ]
